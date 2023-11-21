@@ -21,7 +21,8 @@ def open_file_1():
             if signal_type == 0:  # Time domain
                 data1 = [(int(index), float(amplitude)) for index, amplitude in (line.split() for line in data_lines)]
             elif signal_type == 1:  # Frequency domain
-                data1 = [(float(freq), float(amplitude), float(phase_shift)) for freq, amplitude, phase_shift in (line.split() for line in data_lines)]
+                data1 = [(float(amplitude), float(phase)) for amplitude, phase in (line.split() for line in data_lines)]
+        print("data components loaded successfully.")
 
 def open_file_2():
     global data2
@@ -37,19 +38,8 @@ def open_file_2():
             if signal_type == 0:  # Time domain
                 data2 = [(int(index), float(amplitude)) for index, amplitude in (line.split() for line in data_lines)]
             elif signal_type == 1:  # Frequency domain
-                data2 = [(float(freq), float(amplitude), float(phase_shift)) for freq, amplitude, phase_shift in (line.split() for line in data_lines)]
-
-def open_file_IDFT():
-    global data1
-    try:
-        file_path = filedialog.askopenfilename(filetypes=[("Text Files", "*.txt")])
-        if file_path:
-            with open(file_path, 'r') as file:
-                lines = file.readlines()
-                data1 = [(float(amplitude), float(phase)) for amplitude, phase in (line.split() for line in lines)]
-            print("Frequency components loaded successfully.")
-    except Exception as e:
-        print(f"An error occurred: {e}")
+                data2 = [(float(amplitude), float(phase)) for amplitude, phase in (line.split() for line in data_lines)]
+        print("data components loaded successfully.")
 
 def perform_addition():
     global data1, data2
@@ -280,6 +270,14 @@ def perform_quantization_with_levels(num_levels):
     plt.tight_layout()
     plt.show()
 
+def custom_dft(s):
+    N = len(s)
+    X = np.zeros(N, dtype=np.complex128)
+    for k in range(N):
+        X[k] = sum(s[n] * np.exp(-1j * 2 * np.pi * k * n / N) for n in range(N))
+    return X
+
+
 def DFT():
     global data1
     if data1 is None:
@@ -287,7 +285,12 @@ def DFT():
         return
     
     try:
-        HZ = float(simpledialog.askstring("Input", "Enter a frequency in HZ:"))
+        HZ_input = simpledialog.askstring("Input", "Enter a frequency in HZ:")
+        if HZ_input is None:
+            # User clicked Cancel
+            return
+
+        HZ = float(HZ_input)
         signal = [(sequence) for index, sequence in data1]
         dft_result = custom_dft(signal)
         num_samples = len(signal)
@@ -297,6 +300,12 @@ def DFT():
 
         # Save amplitude and phase to a text file
         with open("frequency_components.txt", "w") as file:
+            # Write signal type, is_periodic, and num_samples
+            file.write("1\n")
+            file.write("0\n")
+            file.write(f"{num_samples}\n")
+
+            # Write amplitude and phase
             for a, p in zip(amplitude, phase):
                 file.write(f"{a} {p}\n")
 
@@ -322,7 +331,8 @@ def DFT():
         modify(num_samples, frequencies, amplitude, phase)
 
     except ValueError:
-        print("Invalid input. Please enter a number.")
+        print("Invalid input. Please enter a valid number.")
+
 
 def modify(num_samples, frequencies, amplitude, phase): 
     print("\nModify Amplitude and Phase:")
