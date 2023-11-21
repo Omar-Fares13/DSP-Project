@@ -391,7 +391,42 @@ def IDFT():
         print(f"An error occurred: {e}")
 
 
+def compute_dct():
+    global data1
+    if data1 is None:
+        print("Please load the signal.")
+        return
+    try:
+        N = len(data1)
+        dct_result = np.zeros(N)
+        for k in range(N):
+          dct_result[k] = np.sqrt(2/N) * np.sum(data1 * np.cos(np.pi/(4*N) * (2*np.arange(1, N+1) - 1) * (2*k + 1)))
 
+           # Get user input for the number of coefficients to save
+        m = int(simpledialog.askstring("Input", "Enter the number of coefficients to save: "))
+
+        # Save the first m coefficients in a text file
+
+        print(f"First {m} DCT coefficients saved to coefficients.txt")
+
+        with open("coefficients.txt", 'w') as file:
+            file.write("0\n")
+            file.write("1\n")
+            file.write(f"0 {N}\n")
+            for coeff in dct_result[:m]:
+                file.write(f"{coeff}\n")
+
+        # Display DCT result
+        plt.figure(figsize=(8, 4))
+        plt.stem(dct_result, use_line_collection=True)
+        plt.title('Discrete Cosine Transform (DCT)')
+        plt.xlabel('Coefficient Index (k)')
+        plt.ylabel('DCT Coefficient Value')
+        plt.show()
+
+
+    except ValueError:
+        print("Invalid input. Please enter a valid number.")
 
 # Create a main window
 root = tk.Tk()
@@ -445,6 +480,10 @@ plot_button.pack(pady=10)
 
 # Create buttons to Frequency Domain
 plot_button = tk.Button(root, text="IDFT", command=IDFT)
+plot_button.pack(pady=10)
+
+# Create buttons to Frequency Domain
+plot_button = tk.Button(root, text="DCT", command=compute_dct)
 plot_button.pack(pady=10)
 
 # Start the main event loop
