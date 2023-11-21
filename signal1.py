@@ -38,15 +38,18 @@ def open_file_2():
                 data2 = [(int(index), float(amplitude)) for index, amplitude in (line.split() for line in data_lines)]
             elif signal_type == 1:  # Frequency domain
                 data2 = [(float(freq), float(amplitude), float(phase_shift)) for freq, amplitude, phase_shift in (line.split() for line in data_lines)]
+
 def open_file_IDFT():
     global data1
-    file_path = filedialog.askopenfilename(filetypes=[("Text Files", "*.txt")])
-    if file_path:
-        with open(file_path, 'r') as file:
-            lines = file.readlines()
-            data_lines = lines[3:]
-            data1 = data1 = [complex(line.split(',')[0].replace("f", "j")) + complex(line.split(',')[1].replace("f", "j")) for line in data_lines if line.strip()]
-            print(data1)
+    try:
+        file_path = filedialog.askopenfilename(filetypes=[("Text Files", "*.txt")])
+        if file_path:
+            with open(file_path, 'r') as file:
+                lines = file.readlines()
+                data1 = [(float(amplitude), float(phase)) for amplitude, phase in (line.split() for line in lines)]
+            print("Frequency components loaded successfully.")
+    except Exception as e:
+        print(f"An error occurred: {e}")
 
 def perform_addition():
     global data1, data2
@@ -277,106 +280,106 @@ def perform_quantization_with_levels(num_levels):
     plt.tight_layout()
     plt.show()
 
-def custom_dft(s):
-    N = len(s)
-    X = np.zeros(N, dtype=np.complex128)
-    for k in range(N):
-        X[k] = sum(s[n] * np.exp(-1j * 2 * np.pi * k * n / N) for n in range(N))
-    return X
-
-
 def DFT():
-    
     global data1
     if data1 is None:
-        print("Please load the signal .")
+        print("Please load the signal.")
         return
     
     try:
         HZ = float(simpledialog.askstring("Input", "Enter a frequency in HZ:"))
-        signal = [(sequence) for index ,sequence in data1 ] 
-        print(signal)
+        signal = [(sequence) for index, sequence in data1]
         dft_result = custom_dft(signal)
-        print(dft_result)
         num_samples = len(signal)
         frequencies = [k * HZ / num_samples for k in range(num_samples)]
         amplitude = np.abs(dft_result)
         phase = np.angle(dft_result)
+
+        # Save amplitude and phase to a text file
+        with open("frequency_components.txt", "w") as file:
+            for a, p in zip(amplitude, phase):
+                file.write(f"{a} {p}\n")
+
+        # Plot frequency spectrum (same as before)
         plt.subplot(211)
         plt.stem(frequencies, amplitude)
         plt.xlabel('Frequency')
         plt.ylabel('Amplitude')
         plt.title('Frequency / Amplitude')
-        # Plot frequency versus phase
+
         plt.subplot(212)
         plt.stem(frequencies, phase)
         plt.xlabel('Frequency')
         plt.ylabel('Phase')
-        plt.title('Frequency /  Phase')
+        plt.title('Frequency / Phase')
+        
         plt.tight_layout()
         plt.show()
-        
-        def modify() : 
-            print("\nModify Amplitude and Phase:")
-            for k in range(num_samples):
-                try:
-                    new_amp = float(simpledialog.askstring("Input",f"Enter new amplitude for component at {frequencies[k]} Hz: "))
-                    new_phase = float(simpledialog.askstring("Input",f"Enter new phase for component at {frequencies[k]} Hz: "))
-                
-                    amplitude[k] = new_amp
-                    phase[k] = new_phase
-                except ValueError:
-                    print("ERROR!!!")  
-            plt.subplot(211)
-            plt.stem(frequencies, amplitude)
-            plt.xlabel('Frequency')
-            plt.ylabel('Amplitude')
-            plt.title('Frequency / Amplitude')
-            # Plot frequency versus phase
-            plt.subplot(212)
-            plt.stem(frequencies, phase)
-            plt.xlabel('Frequency')
-            plt.ylabel('Phase')
-            plt.title('Frequency /  Phase')
-            plt.tight_layout()
-            plt.show()
-        
 
-        # Create buttons to modify amp/phase
+        print("Amplitude and phase saved to 'frequency_components.txt'.")
         
-        root = tk.Tk()
-        root.title("modify ")
-        modifyPtn = tk.Button(root, text="modify amp/phase", command=modify)
-        modifyPtn.pack(pady=10)
-        
+        # Call the modify function
+        modify(num_samples, frequencies, amplitude, phase)
 
     except ValueError:
-        print("Invalid input. Please enter a number.")  
+        print("Invalid input. Please enter a number.")
 
-
-
-
-def coustem_IDFT(X):
-    N = len(X)
-    x = np.zeros(N, dtype=np.complex128)
-    
-    for n in range(N):
-        x[n] = sum(X[k] * np.exp(1j * 2 * np.pi * k * n / N) for k in range(N))
-    
-    return x / N
+def modify(num_samples, frequencies, amplitude, phase): 
+    print("\nModify Amplitude and Phase:")
+    for k in range(num_samples):
+        try:
+            new_amp = float(simpledialog.askstring("Input", f"Enter new amplitude for component at {frequencies[k]} Hz: "))
+            new_phase = float(simpledialog.askstring("Input", f"Enter new phase for component at {frequencies[k]} Hz: "))
+        
+            amplitude[k] = new_amp
+            phase[k] = new_phase
+        except ValueError:
+            print("ERROR!!!")  
+    plt.subplot(211)
+    plt.stem(frequencies, amplitude)
+    plt.xlabel('Frequency')
+    plt.ylabel('Amplitude')
+    plt.title('Frequency / Amplitude')
+    # Plot frequency versus phase
+    plt.subplot(212)
+    plt.stem(frequencies, phase)
+    plt.xlabel('Frequency')
+    plt.ylabel('Phase')
+    plt.title('Frequency / Phase')
+    plt.tight_layout()
+    plt.show()
 
 def IDFT():
     global data1
-    if data1 is None:
-        print("Please load the signal .")
-        return
     try:
-        d = coustem_IDFT(data1)
-        real_parts = [complex_number.real for complex_number in d]
-        print(real_parts)
+        if data1 is None:
+            print("Please load the frequency components.")
+            return
 
-    except ValueError:
-        print("Invalid input. Please enter a number.")  
+        num_samples = len(data1)
+        time_values = np.linspace(0, 1, num_samples, endpoint=False)
+        signal_values = np.zeros(num_samples)
+
+        for n in range(num_samples):
+            for k in range(num_samples):
+                amplitude, phase = data1[k]
+                signal_values[n] += amplitude * np.cos(2 * np.pi * k * time_values[n] + phase)/num_samples
+
+        # Plot the reconstructed signal
+        plt.figure(figsize=(8, 4))
+        plt.plot(time_values, signal_values, 'b-')
+        plt.title('Reconstructed Signal')
+        plt.xlabel('Time')
+        plt.ylabel('Amplitude')
+        plt.grid(True, linestyle='--', alpha=0.7)
+        plt.show()
+
+        # Print the reconstructed signal
+        print(f"Reconstructed Signal: {signal_values}")
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
 
 
 
@@ -390,9 +393,6 @@ open_button_1.pack(pady=10)
 
 open_button_2 = tk.Button(root, text="Open File 2", command=open_file_2)
 open_button_2.pack(pady=10)
-
-open_button_IDFT = tk.Button(root, text="Open File IDFT", command=open_file_IDFT)
-open_button_IDFT.pack(pady=10)
 
 # Create buttons to perform operations
 addition_button = tk.Button(root, text="Perform Addition", command=perform_addition)
@@ -436,7 +436,6 @@ plot_button.pack(pady=10)
 # Create buttons to Frequency Domain
 plot_button = tk.Button(root, text="IDFT", command=IDFT)
 plot_button.pack(pady=10)
-
 
 # Start the main event loop
 root.mainloop()
