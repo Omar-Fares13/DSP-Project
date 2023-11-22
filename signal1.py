@@ -396,95 +396,169 @@ def compute_dct():
     if data1 is None:
         print("Please load the signal.")
         return
+
     try:
         N = len(data1)
         dct_result = np.zeros(N)
-        for k in range(N):
-          dct_result[k] = np.sqrt(2/N) * np.sum(data1 * np.cos(np.pi/(4*N) * (2*np.arange(1, N+1) - 1) * (2*k + 1)))
+        signal_values = [amplitude for amplitude, _ in data1]
 
-           # Get user input for the number of coefficients to save
+        for k in range(N):
+            dct_result[k] = np.sqrt(2/N) * np.sum(signal_values * np.cos(np.pi/(4*N) * (2*np.arange(1, N+1) - 1) * (2*k + 1)))
+
+        # Get user input for the number of coefficients to save
         m = int(simpledialog.askstring("Input", "Enter the number of coefficients to save: "))
 
+        if m > N:
+            print("Error: Number of coefficients to save exceeds the length of the DCT result.")
+            return
+
         # Save the first m coefficients in a text file
+        with open("coefficients.txt", 'w') as file:
+            file.write("0\n")  # Signal type (0 for time domain)
+            file.write("1\n")  # Is periodic (1 for yes, 0 for no)
+            file.write(f"{m}\n")  # Number of samples
+
+    # Write amplitude and phase
+            for coeff in dct_result[:m]:
+                file.write(f"0 {coeff}\n")
 
         print(f"First {m} DCT coefficients saved to coefficients.txt")
 
-        with open("coefficients.txt", 'w') as file:
-            file.write("0\n")
-            file.write("1\n")
-            file.write(f"0 {N}\n")
-            for coeff in dct_result[:m]:
-                file.write(f"{coeff}\n")
-
         # Display DCT result
         plt.figure(figsize=(8, 4))
-        plt.stem(dct_result, use_line_collection=True)
+        plt.stem(dct_result)
         plt.title('Discrete Cosine Transform (DCT)')
         plt.xlabel('Coefficient Index (k)')
         plt.ylabel('DCT Coefficient Value')
         plt.show()
 
+    except ValueError as e:
+        print(f"Error: {e}")
 
-    except ValueError:
-        print("Invalid input. Please enter a valid number.")
+
+def remove_dc_component():
+    global data1
+    if data1 is None:
+        print("Please load the signal.")
+        return
+
+    try:
+        # Extract the signal values
+        signal_values = [amplitude for _, amplitude in data1]
+
+        # Remove DC component by subtracting the mean value
+        mean_value = np.mean(signal_values)
+        signal_without_dc = signal_values - mean_value
+
+        # Round the modified signal values to 3 digits
+        signal_without_dc_rounded = np.round(signal_without_dc, 3)
+
+        # Update data1 with the modified signal
+        data1 = list(enumerate(signal_without_dc_rounded))
+
+        # Print the modified signal
+        print("Modified Signal:")
+        for index, amplitude in data1:
+            print(f"{index} {amplitude:.3f}")
+
+        # Print the modified signal values
+        modified_signal_values = [amplitude for _, amplitude in data1]
+        print(f"Modified Signal Values: {modified_signal_values}")
+
+        # Plot the original and modified signals
+        plt.figure(figsize=(10, 5))
+
+        plt.subplot(2, 1, 1)
+        plt.plot(signal_values, label='Original Signal')
+        plt.title('Original Signal')
+        plt.xlabel('Sample Index')
+        plt.ylabel('Amplitude')
+        plt.legend()
+
+        plt.subplot(2, 1, 2)
+        plt.plot(signal_without_dc_rounded, label='Signal without DC Component')
+        plt.title('Signal without DC Component')
+        plt.xlabel('Sample Index')
+        plt.ylabel('Amplitude')
+        plt.legend()
+
+        plt.tight_layout()
+        plt.show()
+
+        print("DC component removed successfully.")
+
+    except ValueError as e:
+        print(f"Error: {e}")
+import tkinter as tk
+from tkinter import filedialog, simpledialog
+
+# Function definitions...
 
 # Create a main window
 root = tk.Tk()
 root.title("Signal Viewer")
 
-# Create buttons to open files
-open_button_1 = tk.Button(root, text="Open File 1", command=open_file_1)
-open_button_1.pack(pady=10)
+# Frame for file-related buttons
+file_frame = tk.Frame(root)
+file_frame.pack(pady=10)
 
-open_button_2 = tk.Button(root, text="Open File 2", command=open_file_2)
-open_button_2.pack(pady=10)
+open_button_1 = tk.Button(file_frame, text="Open File 1", command=open_file_1)
+open_button_1.pack(side=tk.LEFT, padx=5)
 
-# Create buttons to perform operations
-addition_button = tk.Button(root, text="Perform Addition", command=perform_addition)
-addition_button.pack(pady=10)
+open_button_2 = tk.Button(file_frame, text="Open File 2", command=open_file_2)
+open_button_2.pack(side=tk.LEFT, padx=5)
 
-subtraction_button = tk.Button(root, text="Perform Subtraction", command=perform_subtraction)
-subtraction_button.pack(pady=10)
+# Frame for arithmetic operation buttons
+arithmetic_frame = tk.Frame(root)
+arithmetic_frame.pack(pady=10)
 
-# Create buttons to perform multiplcation
-multiplication_button = tk.Button(root, text="Perform Multiplication", command=perform_multiplication)
-multiplication_button.pack(pady=10)
+addition_button = tk.Button(arithmetic_frame, text="Perform Addition", command=perform_addition)
+addition_button.pack(side=tk.LEFT, padx=5)
 
-# Create buttons to perform Squaring
-squaring_button = tk.Button(root, text="Perform Squaring", command=perform_squaring)
-squaring_button.pack(pady=10)
+subtraction_button = tk.Button(arithmetic_frame, text="Perform Subtraction", command=perform_subtraction)
+subtraction_button.pack(side=tk.LEFT, padx=5)
 
-# Create buttons to perform shifting
-shifting_button = tk.Button(root, text="Perform Shifting", command=perform_shifting)
-shifting_button.pack(pady=10)
+multiplication_button = tk.Button(arithmetic_frame, text="Perform Multiplication", command=perform_multiplication)
+multiplication_button.pack(side=tk.LEFT, padx=5)
 
-# Create buttons to perform normalization
-normalization_button = tk.Button(root, text="Perform Normalization", command=perform_normalization)
-normalization_button.pack(pady=10)
+squaring_button = tk.Button(arithmetic_frame, text="Perform Squaring", command=perform_squaring)
+squaring_button.pack(side=tk.LEFT, padx=5)
 
-# Create buttons to perform accumulation
-accumulation_button = tk.Button(root, text="Perform Accumulation", command=perform_accumulation)
-accumulation_button.pack(pady=10)
+# Frame for other operations
+operation_frame = tk.Frame(root)
+operation_frame.pack(pady=10)
 
-# Create buttons to plot signal
-plot_button = tk.Button(root, text="Plot Signal", command=lambda: plot_signal(data1))
-plot_button.pack(pady=10)
+shifting_button = tk.Button(operation_frame, text="Perform Shifting", command=perform_shifting)
+shifting_button.pack(side=tk.LEFT, padx=5)
 
-# Create buttons to perform quantization
-plot_button = tk.Button(root, text="Perform quantization", command=perform_quantization)
-plot_button.pack(pady=10)
+normalization_button = tk.Button(operation_frame, text="Perform Normalization", command=perform_normalization)
+normalization_button.pack(side=tk.LEFT, padx=5)
 
-# Create buttons to Frequency Domain
-plot_button = tk.Button(root, text="DFT", command=DFT)
-plot_button.pack(pady=10)
+accumulation_button = tk.Button(operation_frame, text="Perform Accumulation", command=perform_accumulation)
+accumulation_button.pack(side=tk.LEFT, padx=5)
 
-# Create buttons to Frequency Domain
-plot_button = tk.Button(root, text="IDFT", command=IDFT)
-plot_button.pack(pady=10)
+# Frame for plotting buttons
+plotting_frame = tk.Frame(root)
+plotting_frame.pack(pady=10)
 
-# Create buttons to Frequency Domain
-plot_button = tk.Button(root, text="DCT", command=compute_dct)
-plot_button.pack(pady=10)
+plot_button = tk.Button(plotting_frame, text="Plot Signal", command=lambda: plot_signal(data1))
+plot_button.pack(side=tk.LEFT, padx=5)
+
+# Frame for frequency domain operations
+frequency_frame = tk.Frame(root)
+frequency_frame.pack(pady=10)
+
+dft_button = tk.Button(frequency_frame, text="DFT", command=DFT)
+dft_button.pack(side=tk.LEFT, padx=5)
+
+idft_button = tk.Button(frequency_frame, text="IDFT", command=IDFT)
+idft_button.pack(side=tk.LEFT, padx=5)
+
+dct_button = tk.Button(frequency_frame, text="DCT", command=compute_dct)
+dct_button.pack(side=tk.LEFT, padx=5)
+
+remove_dc_button = tk.Button(frequency_frame, text="Remove DC Component", command=remove_dc_component)
+remove_dc_button.pack(side=tk.LEFT, padx=5)
 
 # Start the main event loop
 root.mainloop()
