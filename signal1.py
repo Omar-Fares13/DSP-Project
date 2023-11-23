@@ -400,10 +400,10 @@ def compute_dct():
     try:
         N = len(data1)
         dct_result = np.zeros(N)
-        signal_values = [amplitude for amplitude, _ in data1]
+        signal_values = [amplitude for  _,amplitude in data1]
 
         for k in range(N):
-            dct_result[k] = np.sqrt(2/N) * np.sum(signal_values * np.cos(np.pi/(4*N) * (2*np.arange(1, N+1) - 1) * (2*k + 1)))
+            dct_result[k] = np.sqrt(2/N) * np.sum(signal_values * np.cos(np.pi/(4*N) * (2*np.arange(0, N) - 1) * (2*k - 1)))
 
         # Get user input for the number of coefficients to save
         m = int(simpledialog.askstring("Input", "Enter the number of coefficients to save: "))
