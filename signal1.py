@@ -21,7 +21,7 @@ def open_file_1():
             if signal_type == 0:  # Time domain
                 data1 = [(int(index), float(amplitude)) for index, amplitude in (line.split() for line in data_lines)]
             elif signal_type == 1:  # Frequency domain
-                data1 = [(float(amplitude), float(phase)) for amplitude, phase in (line.split() for line in data_lines)]
+                data1 = [(float(freq), float(amplitude), float(phase)) for freq, amplitude, phase in (line.split() for line in data_lines)]
         print("data components loaded successfully.")
 
 def open_file_2():
@@ -38,7 +38,7 @@ def open_file_2():
             if signal_type == 0:  # Time domain
                 data2 = [(int(index), float(amplitude)) for index, amplitude in (line.split() for line in data_lines)]
             elif signal_type == 1:  # Frequency domain
-                data2 = [(float(amplitude), float(phase)) for amplitude, phase in (line.split() for line in data_lines)]
+                data2 = [(float(freq), float(amplitude), float(phase)) for freq, amplitude, phase in (line.split() for line in data_lines)]
         print("data components loaded successfully.")
 
 def perform_addition():
@@ -557,42 +557,242 @@ def DerivativeSignal():
         print("Derivative Test case failed")
     return
 
-signal = [1.0, 2.0, 3.0, 4.0, 5.0]
-k = 2
-def delay_signal(signal, k):
-    delayed_signal = [0.0] * k + signal[:-k]
-    print("Original Signal:", signal)
-    print("Delayed Signal (by {} steps):".format(k), delayed_signal)
 
 
-def advance_signal(signal, k):
-    # Add k zeros at the end to represent the advanced signal
-    advanced_signal = signal[k:] + [0.0] * k
-    print("Original Signal:", signal)
-    print("Advanced Signal (by {} steps):".format(k), advanced_signal)
+def delay_signal():
+    global data1
+    if data1 is None:
+        print("Please load the signal.")
+        return
+    
+    try:
+        # Get user input for delay steps
+        k = int(simpledialog.askstring("Input", "Enter the number of steps for delaying:"))
 
-def delay():
-    delay_signal(signal, k) ;
-def advance():
-    advance_signal(signal, k) ;
+        # Extract the amplitude values from data1
+        amplitude_values = np.array([amplitude for _, amplitude in data1])
+
+        # Perform the delay by adding k zeros at the beginning
+        delayed_signal = np.concatenate(([0.0] * k, amplitude_values[:-k]))
+
+        # Print the original and delayed signals
+        print("Original Signal:", amplitude_values)
+        print("Delayed Signal (by {} steps):".format(k), delayed_signal)
+
+        # Plot the original and delayed signals
+        plt.figure(figsize=(10, 5))
+
+        plt.subplot(2, 1, 1)
+        plt.plot(amplitude_values, label='Original Signal')
+        plt.title('Original Signal')
+        plt.xlabel('Sample Index')
+        plt.ylabel('Amplitude')
+        plt.legend()
+
+        plt.subplot(2, 1, 2)
+        plt.plot(delayed_signal, label=f'Delayed Signal (by {k} steps)')
+        plt.title(f'Delayed Signal (by {k} steps)')
+        plt.xlabel('Sample Index')
+        plt.ylabel('Amplitude')
+        plt.legend()
+
+        plt.tight_layout()
+        plt.show()
+
+        print(f"Signal delayed successfully by {k} steps.")
+
+    except ValueError as e:
+        print(f"Error: {e}")
+
+
+
+
+def advance_signal():
+    global data1
+    if data1 is None:
+        print("Please load the signal.")
+        return
+    
+    try:
+        # Get user input for advance steps
+        k = int(simpledialog.askstring("Input", "Enter the number of steps for advancing:"))
+
+        # Extract the amplitude values from data1
+        amplitude_values = np.array([amplitude for _, amplitude in data1])
+
+        # Perform the advancement by adding k zeros at the end
+        advanced_signal = np.concatenate((amplitude_values[k:], [0.0] * k))
+
+        # Print the original and advanced signals
+        print("Original Signal:", amplitude_values)
+        print("Advanced Signal (by {} steps):".format(k), advanced_signal)
+
+        # Plot the original and advanced signals
+        plt.figure(figsize=(10, 5))
+
+        plt.subplot(2, 1, 1)
+        plt.plot(amplitude_values, label='Original Signal')
+        plt.title('Original Signal')
+        plt.xlabel('Sample Index')
+        plt.ylabel('Amplitude')
+        plt.legend()
+
+        plt.subplot(2, 1, 2)
+        plt.plot(advanced_signal, label=f'Advanced Signal (by {k} steps)')
+        plt.title(f'Advanced Signal (by {k} steps)')
+        plt.xlabel('Sample Index')
+        plt.ylabel('Amplitude')
+        plt.legend()
+
+        plt.tight_layout()
+        plt.show()
+
+        print(f"Signal advanced successfully by {k} steps.")
+
+    except ValueError as e:
+        print(f"Error: {e}")
+
 
 def fold_signal():
-    folded_signal = [(-y,x) for y, x in reversed(data2)]
+    global data1
+    if data1 is None:
+        print("Please load the signal.")
+        return
+
+    # Original signal
+    original_signal = np.array(data1)
+    
+    # Fold the signal
+    folded_signal = np.array([(-y, x) for y, x in reversed(data1)])
+    data1 = folded_signal
+
+    # Plot the original and folded signals
+    plt.figure(figsize=(12, 5))
+
+    plt.subplot(1, 2, 1)
+    plt.plot(original_signal[:, 1], original_signal[:, 0], marker='o', linestyle='-', color='b')
+    plt.title('Original Signal')
+    plt.xlabel('Index')
+    plt.ylabel('Amplitude')
+
+    plt.subplot(1, 2, 2)
+    plt.plot(folded_signal[:, 1], folded_signal[:, 0], marker='o', linestyle='-', color='r')
+    plt.title('Folded Signal')
+    plt.xlabel('Index')
+    plt.ylabel('Amplitude')
+
+    plt.tight_layout()
+    plt.show()
     print(folded_signal)
     return folded_signal
 
 def delayFoldedSignal():
-    folded = fold_signal()
-    k = simpledialog.askinteger("Input", "Enter the number for delay :")
-    print (delay_signal(folded, k))
-def advanceFoldedSignal(): 
-    folded = fold_signal()
-    k = simpledialog.askinteger("Input", "Enter the number for delay :")
-    print (advance_signal(folded, k))
-import tkinter as tk
-from tkinter import filedialog, simpledialog
 
-# Function definitions...
+    fold_signal()
+    advance_signal()
+
+
+def advanceFoldedSignal():
+
+    fold_signal()
+    delay_signal()
+
+def remove_dc_component2():
+    global data1
+    if data1 is None:
+        print("Please load the signal.")
+        return
+
+    try:
+        # Extract the amplitude values from data1
+        amplitude_values = np.array([amplitude for _, amplitude in data1])
+
+        # Compute the first derivative (difference between consecutive samples)
+        derivative_signal = np.diff(amplitude_values, prepend=0)
+
+        # Update data1 with the differentiated signal
+        data1 = list(enumerate(derivative_signal))
+
+        # Print the differentiated signal
+        print("Differentiated Signal:")
+        for index, derivative in data1:
+            print(f"{index} {derivative:.3f}")
+
+        # Plot the original and differentiated signals
+        plt.figure(figsize=(10, 5))
+
+        plt.subplot(2, 1, 1)
+        plt.plot(amplitude_values, label='Original Signal')
+        plt.title('Original Signal')
+        plt.xlabel('Sample Index')
+        plt.ylabel('Amplitude')
+        plt.legend()
+
+        plt.subplot(2, 1, 2)
+        plt.plot(derivative_signal, label='Differentiated Signal')
+        plt.title('Differentiated Signal')
+        plt.xlabel('Sample Index')
+        plt.ylabel('Amplitude')
+        plt.legend()
+
+        plt.tight_layout()
+        plt.show()
+
+        print("DC component removed successfully using differentiation.")
+
+    except ValueError as e:
+        print(f"Error: {e}")
+
+
+def convolve_signals():
+    global data1, data2
+    if data1 is None or data2 is None:
+        print("Please load both signals.")
+        return
+
+    try:
+        # Extract amplitude values from data1 and data2
+        signal1_values = np.array([amplitude for _, amplitude in data1])
+        signal2_values = np.array([amplitude for _, amplitude in data2])
+
+        # Perform convolution
+        convolution_result = np.convolve(signal1_values, signal2_values, mode='full')
+
+        # Print the convolution result
+        print("Convolution Result:", convolution_result)
+
+        # Plot the original signals and the convolution result
+        plt.figure(figsize=(12, 5))
+
+        plt.subplot(3, 1, 1)
+        plt.plot(signal1_values, label='Signal 1')
+        plt.title('Signal 1')
+        plt.xlabel('Sample Index')
+        plt.ylabel('Amplitude')
+        plt.legend()
+
+        plt.subplot(3, 1, 2)
+        plt.plot(signal2_values, label='Signal 2')
+        plt.title('Signal 2')
+        plt.xlabel('Sample Index')
+        plt.ylabel('Amplitude')
+        plt.legend()
+
+        plt.subplot(3, 1, 3)
+        plt.plot(convolution_result, label='Convolution Result')
+        plt.title('Convolution Result')
+        plt.xlabel('Sample Index')
+        plt.ylabel('Amplitude')
+        plt.legend()
+
+        plt.tight_layout()
+        plt.show()
+
+        print("Signals convolved successfully.")
+
+    except ValueError as e:
+        print(f"Error: {e}")
+
 
 # Create a main window
 root = tk.Tk()
@@ -654,31 +854,45 @@ dft_button.pack(side=tk.LEFT, padx=5)
 idft_button = tk.Button(frequency_frame, text="IDFT", command=IDFT)
 idft_button.pack(side=tk.LEFT, padx=5)
 
-dct_button = tk.Button(frequency_frame, text="DCT", command=compute_dct)
+# Frame for frequency domain operations
+dct_frame = tk.Frame(root)
+dct_frame.pack(pady=10)
+
+dct_button = tk.Button(dct_frame, text="DCT", command=compute_dct)
 dct_button.pack(side=tk.LEFT, padx=5)
 
-remove_dc_button = tk.Button(frequency_frame, text="Remove DC Component", command=remove_dc_component)
+remove_dc_button = tk.Button(dct_frame, text="Remove DC Component", command=remove_dc_component)
 remove_dc_button.pack(side=tk.LEFT, padx=5)
 
-dct_button = tk.Button(frequency_frame, text="Smoothing", command=Smoothing)
+# Frame for frequency domain operations
+time_frame = tk.Frame(root)
+time_frame.pack(pady=10)
+
+dct_button = tk.Button(time_frame, text="Smoothing", command=Smoothing)
 dct_button.pack(side=tk.LEFT, padx=5)
 
-dct_button = tk.Button(frequency_frame, text="Derivative", command=DerivativeSignal)
+dct_button = tk.Button(time_frame, text="Derivative", command=DerivativeSignal)
 dct_button.pack(side=tk.LEFT, padx=5)
 
-dct_button = tk.Button(frequency_frame, text="Delaying", command=delay)
+dct_button = tk.Button(time_frame, text="Delaying", command=delay_signal)
 dct_button.pack(side=tk.LEFT, padx=5)
 
-dct_button = tk.Button(frequency_frame, text="Advancing", command=advance )
+dct_button = tk.Button(time_frame, text="Advancing", command=advance_signal)
 dct_button.pack(side=tk.LEFT, padx=5)
 
-dct_button = tk.Button(frequency_frame, text="Fold", command=fold_signal)
+dct_button = tk.Button(time_frame, text="Fold", command=fold_signal)
 dct_button.pack(side=tk.LEFT, padx=5)
 
-dct_button = tk.Button(frequency_frame, text="delay folded signal", command=delayFoldedSignal)
+dct_button = tk.Button(time_frame, text="delay folded signal", command=delayFoldedSignal)
 dct_button.pack(side=tk.LEFT, padx=5)
 
-dct_button = tk.Button(frequency_frame, text="advance folded signal", command=advanceFoldedSignal)
+dct_button = tk.Button(time_frame, text="advance folded signal", command=advanceFoldedSignal)
+dct_button.pack(side=tk.LEFT, padx=5)
+
+dct_button = tk.Button(time_frame, text="Remove DC Component 2", command=remove_dc_component2)
+dct_button.pack(side=tk.LEFT, padx=5)
+
+dct_button = tk.Button(time_frame, text="Convolve two signals", command=convolve_signals)
 dct_button.pack(side=tk.LEFT, padx=5)
 
 # Start the main event loop
