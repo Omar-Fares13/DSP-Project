@@ -489,6 +489,106 @@ def remove_dc_component():
 
     except ValueError as e:
         print(f"Error: {e}")
+
+
+
+
+def Smoothing():
+    global data1
+    if data1 is None:
+        print("Please load the signal before performing smoothing.")
+        return
+
+    try:
+        # Get the window size from the user
+        window_size = simpledialog.askinteger("Input", "Enter the number of points included in averaging:")
+
+        if window_size is None or window_size <= 0:
+            print("Invalid window size. Please enter a positive integer.")
+            return
+
+        num_points = len(data1)
+        moving_avg = []
+
+        for n in range(num_points):
+            start = max(0, n - window_size + 1)
+            end = n + 1
+            window = data1[start:end]
+            avg_value = sum(amplitude for _, amplitude in window) / len(window)
+            moving_avg.append((n, avg_value))
+
+        print(f"Smoothing result: {moving_avg}")
+        plot_signal(moving_avg)
+
+    except ValueError:
+        print("Invalid input. Please enter a valid number.")
+
+
+def DerivativeSignal():
+    InputSignal = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0, 25.0, 26.0, 27.0, 28.0, 29.0, 30.0, 31.0, 32.0, 33.0, 34.0, 35.0, 36.0, 37.0, 38.0, 39.0, 40.0, 41.0, 42.0, 43.0, 44.0, 45.0, 46.0, 47.0, 48.0, 49.0, 50.0, 51.0, 52.0, 53.0, 54.0, 55.0, 56.0, 57.0, 58.0, 59.0, 60.0, 61.0, 62.0, 63.0, 64.0, 65.0, 66.0, 67.0, 68.0, 69.0, 70.0, 71.0, 72.0, 73.0, 74.0, 75.0, 76.0, 77.0, 78.0, 79.0, 80.0, 81.0, 82.0, 83.0, 84.0, 85.0, 86.0, 87.0, 88.0, 89.0, 90.0, 91.0, 92.0, 93.0, 94.0, 95.0, 96.0, 97.0, 98.0, 99.0, 100.0]
+    expectedOutput_first = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    expectedOutput_second = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+    FirstDrev = [InputSignal[i] - InputSignal[i - 1] for i in range(1, len(InputSignal))]
+    
+    SecondDrev = [InputSignal[i + 1] - 2 * InputSignal[i] + InputSignal[i - 1] for i in range(1, len(InputSignal) - 1)]
+    
+    if (len(FirstDrev) != len(expectedOutput_first)) or (len(SecondDrev) != len(expectedOutput_second)):
+        print("mismatch in length")
+        return
+    first = second = True
+    for i in range(len(expectedOutput_first)):
+        if abs(FirstDrev[i] - expectedOutput_first[i]) < 0.01:
+            continue
+        else:
+            first = False
+            print("1st derivative wrong")
+            return
+    for i in range(len(expectedOutput_second)):
+        if abs(SecondDrev[i] - expectedOutput_second[i]) < 0.01:
+            continue
+        else:
+            second = False
+            print("2nd derivative wrong")
+            return
+    if first and second:
+        print("Derivative Test case passed successfully")
+    else:
+        print("Derivative Test case failed")
+    return
+
+signal = [1.0, 2.0, 3.0, 4.0, 5.0]
+k = 2
+def delay_signal(signal, k):
+    delayed_signal = [0.0] * k + signal[:-k]
+    print("Original Signal:", signal)
+    print("Delayed Signal (by {} steps):".format(k), delayed_signal)
+
+
+def advance_signal(signal, k):
+    # Add k zeros at the end to represent the advanced signal
+    advanced_signal = signal[k:] + [0.0] * k
+    print("Original Signal:", signal)
+    print("Advanced Signal (by {} steps):".format(k), advanced_signal)
+
+def delay():
+    delay_signal(signal, k) ;
+def advance():
+    advance_signal(signal, k) ;
+
+def fold_signal():
+    folded_signal = [(-y,x) for y, x in reversed(data2)]
+    print(folded_signal)
+    return folded_signal
+
+def delayFoldedSignal():
+    folded = fold_signal()
+    k = simpledialog.askinteger("Input", "Enter the number for delay :")
+    print (delay_signal(folded, k))
+def advanceFoldedSignal(): 
+    folded = fold_signal()
+    k = simpledialog.askinteger("Input", "Enter the number for delay :")
+    print (advance_signal(folded, k))
 import tkinter as tk
 from tkinter import filedialog, simpledialog
 
@@ -559,6 +659,27 @@ dct_button.pack(side=tk.LEFT, padx=5)
 
 remove_dc_button = tk.Button(frequency_frame, text="Remove DC Component", command=remove_dc_component)
 remove_dc_button.pack(side=tk.LEFT, padx=5)
+
+dct_button = tk.Button(frequency_frame, text="Smoothing", command=Smoothing)
+dct_button.pack(side=tk.LEFT, padx=5)
+
+dct_button = tk.Button(frequency_frame, text="Derivative", command=DerivativeSignal)
+dct_button.pack(side=tk.LEFT, padx=5)
+
+dct_button = tk.Button(frequency_frame, text="Delaying", command=delay)
+dct_button.pack(side=tk.LEFT, padx=5)
+
+dct_button = tk.Button(frequency_frame, text="Advancing", command=advance )
+dct_button.pack(side=tk.LEFT, padx=5)
+
+dct_button = tk.Button(frequency_frame, text="Fold", command=fold_signal)
+dct_button.pack(side=tk.LEFT, padx=5)
+
+dct_button = tk.Button(frequency_frame, text="delay folded signal", command=delayFoldedSignal)
+dct_button.pack(side=tk.LEFT, padx=5)
+
+dct_button = tk.Button(frequency_frame, text="advance folded signal", command=advanceFoldedSignal)
+dct_button.pack(side=tk.LEFT, padx=5)
 
 # Start the main event loop
 root.mainloop()
