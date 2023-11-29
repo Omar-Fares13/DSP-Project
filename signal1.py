@@ -708,7 +708,7 @@ def remove_dc_component2():
         amplitude_values = np.array([amplitude for _, amplitude in data1])
 
         # Compute the first derivative (difference between consecutive samples)
-        derivative_signal = np.diff(amplitude_values, prepend=0)
+        derivative_signal = [amplitude_values[i] - amplitude_values[i - 1] for i in range(1, len(amplitude_values))]
 
         # Update data1 with the differentiated signal
         data1 = list(enumerate(derivative_signal))
@@ -755,8 +755,23 @@ def convolve_signals():
         signal1_values = np.array([amplitude for _, amplitude in data1])
         signal2_values = np.array([amplitude for _, amplitude in data2])
 
-        # Perform convolution
-        convolution_result = np.convolve(signal1_values, signal2_values, mode='full')
+        # Length of signals
+        len_signal1 = len(signal1_values)
+        len_signal2 = len(signal2_values)
+
+        # Length of the result
+        len_result = len_signal1 + len_signal2 - 1
+
+        # Initialize result array
+        convolution_result = np.zeros(len_result)
+
+        # Perform convolution manually
+        for i in range(len_signal1):
+            for j in range(len_signal2):
+                convolution_result[i + j] += signal1_values[i] * signal2_values[j]
+
+        # Update data1 with the convolution result
+        data1 = list(enumerate(convolution_result))
 
         # Print the convolution result
         print("Convolution Result:", convolution_result)
