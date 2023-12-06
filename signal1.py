@@ -3,6 +3,7 @@ from tkinter import filedialog, simpledialog
 from tkinter import ttk
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 
 # Global variables to store data
 data1 = None
@@ -965,6 +966,142 @@ def time_delay_analysis():
     except ValueError as e:
         print(f"Error: {e}")
 
+
+
+def custom_correlation(x1 , x2):
+    try:
+        N = len(x2)
+    
+        # Compute the cross-correlation function
+        r_12 = np.zeros(N)
+        for n in range(N):
+            for j in range(N):
+                r_12[j] += x1[n] * x2[(n + j)%N]
+            r_12[j] /= N
+    
+        # Compute the root mean square (RMS) values
+        rms_x1 = np.sum(x1**2)
+        rms_x2 = np.sum(x2**2)
+    
+        # Compute the denominator
+        denominator = np.sqrt(rms_x1 * rms_x2)
+    
+        # Normalize the cross-correlation function
+        rho_12 = r_12 / denominator
+
+        return rho_12
+
+    except ValueError as e:
+        print(f"Error: {e}")
+
+
+def calculate_average_signal(folder_path):
+    files = os.listdir(folder_path)
+    num_files = len(files)
+
+    # Read the first file to get the number of rows
+    first_file_path = os.path.join(folder_path, files[0])
+    with open(first_file_path, 'r') as f:
+        first_signal = np.array([float(value) for value in f.read().splitlines()])
+
+    num_rows = len(first_signal)
+
+    # Initialize variables to store sum of signals
+    sum_signal = np.zeros(num_rows)
+
+    for file in files:
+        file_path = os.path.join(folder_path, file)
+
+        # Read signal values from the file
+        with open(file_path, 'r') as f:
+            signal = np.array([float(value) for value in f.read().splitlines()])
+
+        # Update sum
+        sum_signal += signal
+
+    # Calculate the average signal
+    average_signal = sum_signal / num_files
+
+    return average_signal
+
+def browse_button(entry):
+    folder_path = filedialog.askdirectory()
+    entry.delete(0, tk.END)
+    entry.insert(0, folder_path)
+
+def template_matching_popup():
+    # Create a pop-up window
+    popup = tk.Toplevel()
+    popup.title("Template Matching")
+
+    # Entry widgets for folder paths
+    class1_entry = tk.Entry(popup, width=40)
+    class2_entry = tk.Entry(popup, width=40)
+    test_entry = tk.Entry(popup, width=40)
+
+    # Browse buttons for selecting folders
+    class1_button = tk.Button(popup, text="Browse", command=lambda: browse_button(class1_entry))
+    class2_button = tk.Button(popup, text="Browse", command=lambda: browse_button(class2_entry))
+    test_button = tk.Button(popup, text="Browse", command=lambda: browse_button(test_entry))
+
+    # Place widgets in the pop-up window
+    tk.Label(popup, text="Class 1 Folder:").grid(row=0, column=0)
+    class1_entry.grid(row=0, column=1)
+    class1_button.grid(row=0, column=2)
+
+    tk.Label(popup, text="Class 2 Folder:").grid(row=1, column=0)
+    class2_entry.grid(row=1, column=1)
+    class2_button.grid(row=1, column=2)
+
+    tk.Label(popup, text="Test Folder:").grid(row=2, column=0)
+    test_entry.grid(row=2, column=1)
+    test_button.grid(row=2, column=2)
+
+    # Run the template matching function
+    run_button = tk.Button(popup, text="Run Template Matching", command=lambda: template_matching(class1_entry, class2_entry, test_entry, popup))
+    run_button.grid(row=3, column=0, columnspan=3, pady=10)
+
+def template_matching(class1_entry, class2_entry, test_entry, popup):
+    try:
+        # Get folder paths from entry widgets
+        class1_folder_path = class1_entry.get()
+        class2_folder_path = class2_entry.get()
+        test_folder_path = test_entry.get()
+
+        # Calculate average signals for each class
+        avg_signal_class1 = calculate_average_signal(class1_folder_path)
+        avg_signal_class2 = calculate_average_signal(class2_folder_path)
+
+        # Get the list of test files
+        test_files = os.listdir(test_folder_path)
+
+        for test_file in test_files:
+            test_file_path = os.path.join(test_folder_path, test_file)
+
+            # Read test signal values from the file
+            with open(test_file_path, 'r') as f:
+                test_signal = np.array([float(value) for value in f.read().splitlines()])
+
+            # Calculate correlations with average signals
+            correlation_class1 = custom_correlation(test_signal , avg_signal_class1)
+            correlation_class2 = custom_correlation(test_signal , avg_signal_class2)
+
+            print(f"Correlation Class 1: {correlation_class1}")
+            print(f"Correlation Class 2: {correlation_class2}")
+            # Determine the class based on correlation
+            if np.any(correlation_class1 > correlation_class2):
+             print(f"{test_file} down movement of EOG signal")
+            else:
+             print(f"{test_file} up movement of EOG signal")
+        # Close the pop-up window
+        popup.destroy()
+
+    except Exception as e:
+        print(f"Error: {e}")
+
+
+
+
 # Create a main window
 root = tk.Tk()
 root.title("Signal Viewer")
@@ -1092,8 +1229,8 @@ correlation_button.pack(side=tk.LEFT, padx=5, anchor='center')
 time_delay_analysis_button = tk.Button(correlation_frame, text="time delay analysis", command=time_delay_analysis, padx=10, pady=5, width=15, height=2)
 time_delay_analysis_button.pack(side=tk.LEFT, padx=5, anchor='center')
 
-auto_correlation_button = tk.Button(correlation_frame, text="Auto Correlation", command=convolve_signals, padx=10, pady=5, width=15, height=2)
-auto_correlation_button.pack(side=tk.LEFT, padx=5, anchor='center')
+template_matching_button = tk.Button(correlation_frame, text="template matching", command=template_matching_popup, padx=10, pady=5, width=15, height=2)
+template_matching_button.pack(side=tk.LEFT, padx=5, anchor='center')
 
 # Start the main event loop
 root.mainloop()
