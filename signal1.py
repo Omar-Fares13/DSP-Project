@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import filedialog, simpledialog
+from tkinter import ttk
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -40,6 +41,73 @@ def open_file_2():
             elif signal_type == 1:  # Frequency domain
                 data2 = [(float(freq), float(amplitude), float(phase)) for freq, amplitude, phase in (line.split() for line in data_lines)]
         print("data components loaded successfully.")
+
+
+def generate_signal():
+    # Create a new pop-up window
+    popup = tk.Toplevel(root)
+    popup.title("Signal Parameters")
+
+    # Signal Type
+    signal_type_label = ttk.Label(popup, text="Signal Type:")
+    signal_type_label.grid(row=0, column=0, pady=5, sticky='w')
+    signal_type = ttk.Combobox(popup, values=['Sine', 'Cosine'], state='readonly')
+    signal_type.grid(row=0, column=1, pady=5)
+
+    # Amplitude
+    amplitude_label = ttk.Label(popup, text="Amplitude (A):")
+    amplitude_label.grid(row=1, column=0, pady=5, sticky='w')
+    amplitude_entry = ttk.Entry(popup)
+    amplitude_entry.grid(row=1, column=1, pady=5)
+
+    # Phase Shift
+    phase_shift_label = ttk.Label(popup, text="Phase Shift (θ) in degrees:")
+    phase_shift_label.grid(row=2, column=0, pady=5, sticky='w')
+    phase_shift_entry = ttk.Entry(popup)
+    phase_shift_entry.grid(row=2, column=1, pady=5)
+
+    # Analog Frequency
+    analog_frequency_label = ttk.Label(popup, text="Analog Frequency (Hz):")
+    analog_frequency_label.grid(row=3, column=0, pady=5, sticky='w')
+    analog_frequency_entry = ttk.Entry(popup)
+    analog_frequency_entry.grid(row=3, column=1, pady=5)
+
+    # Sampling Frequency
+    sampling_frequency_label = ttk.Label(popup, text="Sampling Frequency (Hz):")
+    sampling_frequency_label.grid(row=4, column=0, pady=5, sticky='w')
+    sampling_frequency_entry = ttk.Entry(popup)
+    sampling_frequency_entry.grid(row=4, column=1, pady=5)
+
+    def close_popup():
+        popup.destroy()
+
+    def generate_and_plot():
+        A = float(amplitude_entry.get())
+        theta = float(phase_shift_entry.get())
+        analog_freq = float(analog_frequency_entry.get())
+        sampling_freq = float(sampling_frequency_entry.get())
+
+        t = np.linspace(0, 1, int(sampling_freq), endpoint=False)
+        signal = A * np.cos(2 * np.pi * analog_freq * t + np.radians(theta)) if signal_type.get() == 'Cosine' else A * np.sin(2 * np.pi * analog_freq * t + np.radians(theta))
+
+        plt.plot(t, signal)
+        plt.title('Generated Signal')
+        plt.xlabel('Time (s)')
+        plt.ylabel('Amplitude')
+
+        plt.axhline(0, color='black', linewidth=0.5)  # Horizontal axis
+        plt.axvline(0, color='black', linewidth=0.5)  # Vertical axis
+
+        plt.show()
+
+        close_popup()
+
+    # Generate Button in the pop-up
+    generate_button_popup = ttk.Button(popup, text="Generate and Plot", command=generate_and_plot)
+    generate_button_popup.grid(row=5, column=0, columnspan=2, pady=10)
+
+    # Show the pop-up window
+    popup.mainloop()
 
 def perform_addition():
     global data1, data2
@@ -301,7 +369,7 @@ def DFT():
         # Save amplitude and phase to a text file
         with open("frequency_components.txt", "w") as file:
             # Write signal type, is_periodic, and num_samples
-            file.write("1\n")
+            file.write("0\n")
             file.write("0\n")
             file.write(f"{num_samples}\n")
 
@@ -697,6 +765,19 @@ def advanceFoldedSignal():
     fold_signal()
     delay_signal()
 
+
+def custom_idft(signal):
+    N = len(signal)
+    idft_result = np.zeros(N, dtype=np.complex128)
+
+    for n in range(N):
+        for k in range(N):
+            idft_result[n] += signal[k] * np.exp(2j * np.pi * k * n / N)
+
+    idft_result /= N  # Normalize by the number of samples
+
+    return idft_result
+
 def remove_dc_component2():
     global data1
     if data1 is None:
@@ -704,42 +785,28 @@ def remove_dc_component2():
         return
 
     try:
-        # Extract the amplitude values from data1
-        amplitude_values = np.array([amplitude for _, amplitude in data1])
+        # Convert the signal to the frequency domain using DFT
+        signal = [sequence for index, sequence in data1]
+        dft_result = custom_dft(signal)
 
-        # Compute the first derivative (difference between consecutive samples)
-        derivative_signal = [amplitude_values[i] - amplitude_values[i - 1] for i in range(1, len(amplitude_values))]
+        # Set the DC component to zero
+        dft_result[0] = 0
 
-        # Update data1 with the differentiated signal
-        data1 = list(enumerate(derivative_signal))
+        # Apply the inverse DFT to get the modified signal
+        modified_signal = custom_idft(dft_result)
 
-        # Print the differentiated signal
-        print("Differentiated Signal:")
-        for index, derivative in data1:
-            print(f"{index} {derivative:.3f}")
+        # Update the data1 list with the modified signal
+        data1 = [(index, value) for index, value in enumerate(modified_signal)]
 
-        # Plot the original and differentiated signals
-        plt.figure(figsize=(10, 5))
-
-        plt.subplot(2, 1, 1)
-        plt.plot(amplitude_values, label='Original Signal')
-        plt.title('Original Signal')
-        plt.xlabel('Sample Index')
+        print("DC component removed successfully.")
+        # Plot the modified signal
+        plt.figure(figsize=(8, 4))
+        plt.plot(*zip(*data1), marker='o', linestyle='-', color='b')
+        plt.title('Signal after Removing DC Component')
+        plt.xlabel('Index')
         plt.ylabel('Amplitude')
-        plt.legend()
-
-        plt.subplot(2, 1, 2)
-        plt.plot(derivative_signal, label='Differentiated Signal')
-        plt.title('Differentiated Signal')
-        plt.xlabel('Sample Index')
-        plt.ylabel('Amplitude')
-        plt.legend()
-
-        plt.tight_layout()
+        plt.grid(True)
         plt.show()
-
-        print("DC component removed successfully using differentiation.")
-
     except ValueError as e:
         print(f"Error: {e}")
 
@@ -813,102 +880,131 @@ def convolve_signals():
 root = tk.Tk()
 root.title("Signal Viewer")
 
+# Create a notebook (tabs)
+notebook = ttk.Notebook(root)
+notebook.pack(fill='both', expand=True)
+
 # Frame for file-related buttons
-file_frame = tk.Frame(root)
-file_frame.pack(pady=10)
+file_frame = ttk.Frame(notebook)
+notebook.add(file_frame, text='File')
 
-open_button_1 = tk.Button(file_frame, text="Open File 1", command=open_file_1)
-open_button_1.pack(side=tk.LEFT, padx=5)
+open_button_1 = tk.Button(file_frame, text="Open File 1", command=open_file_1, padx=10, pady=5, width=15, height=2)
+open_button_1.pack(side=tk.LEFT, padx=5, anchor='center')
 
-open_button_2 = tk.Button(file_frame, text="Open File 2", command=open_file_2)
-open_button_2.pack(side=tk.LEFT, padx=5)
+open_button_2 = tk.Button(file_frame, text="Open File 2", command=open_file_2, padx=10, pady=5, width=15, height=2)
+open_button_2.pack(side=tk.LEFT, padx=5, anchor='center')
+
+generate_signal_button = tk.Button(file_frame, text="Generate Signal", command=generate_signal, padx=10, pady=5, width=15, height=2)
+generate_signal_button.pack(side=tk.LEFT, padx=5, anchor='center')
 
 # Frame for arithmetic operation buttons
-arithmetic_frame = tk.Frame(root)
-arithmetic_frame.pack(pady=10)
+arithmetic_frame = ttk.Frame(notebook)
+notebook.add(arithmetic_frame, text='Arithmetic')
 
-addition_button = tk.Button(arithmetic_frame, text="Perform Addition", command=perform_addition)
-addition_button.pack(side=tk.LEFT, padx=5)
+addition_button = tk.Button(arithmetic_frame, text="Perform Addition", command=perform_addition, padx=10, pady=5, width=15, height=2)
+addition_button.pack(side=tk.LEFT, padx=5, anchor='center')
 
-subtraction_button = tk.Button(arithmetic_frame, text="Perform Subtraction", command=perform_subtraction)
-subtraction_button.pack(side=tk.LEFT, padx=5)
+subtraction_button = tk.Button(arithmetic_frame, text="Perform Subtraction", command=perform_subtraction, padx=10, pady=5, width=15, height=2)
+subtraction_button.pack(side=tk.LEFT, padx=5, anchor='center')
 
-multiplication_button = tk.Button(arithmetic_frame, text="Perform Multiplication", command=perform_multiplication)
-multiplication_button.pack(side=tk.LEFT, padx=5)
+multiplication_button = tk.Button(arithmetic_frame, text="Perform Multiplication", command=perform_multiplication, padx=10, pady=5, width=15, height=2)
+multiplication_button.pack(side=tk.LEFT, padx=5, anchor='center')
 
-squaring_button = tk.Button(arithmetic_frame, text="Perform Squaring", command=perform_squaring)
-squaring_button.pack(side=tk.LEFT, padx=5)
+squaring_button = tk.Button(arithmetic_frame, text="Perform Squaring", command=perform_squaring, padx=10, pady=5, width=15, height=2)
+squaring_button.pack(side=tk.LEFT, padx=5, anchor='center')
 
 # Frame for other operations
-operation_frame = tk.Frame(root)
-operation_frame.pack(pady=10)
+operation_frame = ttk.Frame(notebook)
+notebook.add(operation_frame, text='Other Operations')
 
-shifting_button = tk.Button(operation_frame, text="Perform Shifting", command=perform_shifting)
-shifting_button.pack(side=tk.LEFT, padx=5)
+shifting_button = tk.Button(operation_frame, text="Perform Shifting", command=perform_shifting, padx=10, pady=5, width=15, height=2)
+shifting_button.pack(side=tk.LEFT, padx=5, anchor='center')
 
-normalization_button = tk.Button(operation_frame, text="Perform Normalization", command=perform_normalization)
-normalization_button.pack(side=tk.LEFT, padx=5)
+normalization_button = tk.Button(operation_frame, text="Perform Normalization", command=perform_normalization, padx=10, pady=5, width=15, height=2)
+normalization_button.pack(side=tk.LEFT, padx=5, anchor='center')
 
-accumulation_button = tk.Button(operation_frame, text="Perform Accumulation", command=perform_accumulation)
-accumulation_button.pack(side=tk.LEFT, padx=5)
+accumulation_button = tk.Button(operation_frame, text="Perform Accumulation", command=perform_accumulation, padx=10, pady=5, width=15, height=2)
+accumulation_button.pack(side=tk.LEFT, padx=5, anchor='center')
 
 # Frame for plotting buttons
-plotting_frame = tk.Frame(root)
-plotting_frame.pack(pady=10)
+plotting_frame = ttk.Frame(notebook)
+notebook.add(plotting_frame, text='Plotting')
 
-plot_button = tk.Button(plotting_frame, text="Plot Signal", command=lambda: plot_signal(data1))
-plot_button.pack(side=tk.LEFT, padx=5)
-
-# Frame for frequency domain operations
-frequency_frame = tk.Frame(root)
-frequency_frame.pack(pady=10)
-
-dft_button = tk.Button(frequency_frame, text="DFT", command=DFT)
-dft_button.pack(side=tk.LEFT, padx=5)
-
-idft_button = tk.Button(frequency_frame, text="IDFT", command=IDFT)
-idft_button.pack(side=tk.LEFT, padx=5)
+plot_button = tk.Button(plotting_frame, text="Plot Signal", command=lambda: plot_signal(data1), padx=10, pady=5, width=15, height=2)
+plot_button.pack(side=tk.LEFT, padx=5, anchor='center')
 
 # Frame for frequency domain operations
-dct_frame = tk.Frame(root)
-dct_frame.pack(pady=10)
+frequency_frame = ttk.Frame(notebook)
+notebook.add(frequency_frame, text='Frequency Domain')
 
-dct_button = tk.Button(dct_frame, text="DCT", command=compute_dct)
-dct_button.pack(side=tk.LEFT, padx=5)
+dft_button = tk.Button(frequency_frame, text="DFT", command=DFT, padx=10, pady=5, width=15, height=2)
+dft_button.pack(side=tk.LEFT, padx=5, anchor='center')
 
-remove_dc_button = tk.Button(dct_frame, text="Remove DC Component", command=remove_dc_component)
-remove_dc_button.pack(side=tk.LEFT, padx=5)
+idft_button = tk.Button(frequency_frame, text="IDFT", command=IDFT, padx=10, pady=5, width=15, height=2)
+idft_button.pack(side=tk.LEFT, padx=5, anchor='center')
 
 # Frame for frequency domain operations
-time_frame = tk.Frame(root)
-time_frame.pack(pady=10)
+dct_frame = ttk.Frame(notebook)
+notebook.add(dct_frame, text='DCT Operations')
 
-dct_button = tk.Button(time_frame, text="Smoothing", command=Smoothing)
-dct_button.pack(side=tk.LEFT, padx=5)
+dct_button = tk.Button(dct_frame, text="DCT", command=compute_dct, padx=10, pady=5, width=15, height=2)
+dct_button.pack(side=tk.LEFT, padx=5, anchor='center')
 
-dct_button = tk.Button(time_frame, text="Derivative", command=DerivativeSignal)
-dct_button.pack(side=tk.LEFT, padx=5)
+remove_dc_button = tk.Button(dct_frame, text="Remove DC Component", command=remove_dc_component, padx=10, pady=5, width=15, height=2)
+remove_dc_button.pack(side=tk.LEFT, padx=5, anchor='center')
 
-dct_button = tk.Button(time_frame, text="Delaying", command=delay_signal)
-dct_button.pack(side=tk.LEFT, padx=5)
+# Frame for time domain operations
+time_frame = ttk.Frame(notebook)
+notebook.add(time_frame, text='Time Domain')
 
-dct_button = tk.Button(time_frame, text="Advancing", command=advance_signal)
-dct_button.pack(side=tk.LEFT, padx=5)
+# Create two frames within the time domain frame
+row1_frame = tk.Frame(time_frame)
+row1_frame.pack(side=tk.TOP, pady=5)
 
-dct_button = tk.Button(time_frame, text="Fold", command=fold_signal)
-dct_button.pack(side=tk.LEFT, padx=5)
+row2_frame = tk.Frame(time_frame)
+row2_frame.pack(side=tk.TOP, pady=5)
 
-dct_button = tk.Button(time_frame, text="delay folded signal", command=delayFoldedSignal)
-dct_button.pack(side=tk.LEFT, padx=5)
+# Buttons for the first row
+smoothing_button = tk.Button(row1_frame, text="Smoothing", command=Smoothing, padx=10, pady=5, width=15, height=2)
+smoothing_button.pack(side=tk.LEFT, padx=5, anchor='center')
 
-dct_button = tk.Button(time_frame, text="advance folded signal", command=advanceFoldedSignal)
-dct_button.pack(side=tk.LEFT, padx=5)
+derivative_button = tk.Button(row1_frame, text="Derivative", command=DerivativeSignal, padx=10, pady=5, width=15, height=2)
+derivative_button.pack(side=tk.LEFT, padx=5, anchor='center')
 
-dct_button = tk.Button(time_frame, text="Remove DC Component 2", command=remove_dc_component2)
-dct_button.pack(side=tk.LEFT, padx=5)
+delay_button = tk.Button(row1_frame, text="Delaying", command=delay_signal, padx=10, pady=5, width=15, height=2)
+delay_button.pack(side=tk.LEFT, padx=5, anchor='center')
 
-dct_button = tk.Button(time_frame, text="Convolve two signals", command=convolve_signals)
-dct_button.pack(side=tk.LEFT, padx=5)
+advance_button = tk.Button(row1_frame, text="Advancing", command=advance_signal, padx=10, pady=5, width=15, height=2)
+advance_button.pack(side=tk.LEFT, padx=5, anchor='center')
+
+# Buttons for the second row
+fold_button = tk.Button(row2_frame, text="Fold", command=fold_signal, padx=10, pady=5, width=15, height=2)
+fold_button.pack(side=tk.LEFT, padx=5, anchor='center')
+
+delay_folded_button = tk.Button(row2_frame, text="Delay Folded Signal", command=delayFoldedSignal, padx=10, pady=5, width=15, height=2)
+delay_folded_button.pack(side=tk.LEFT, padx=5, anchor='center')
+
+advance_folded_button = tk.Button(row2_frame, text="Advance Folded Signal", command=advanceFoldedSignal, padx=10, pady=5, width=15, height=2)
+advance_folded_button.pack(side=tk.LEFT, padx=5, anchor='center')
+
+remove_dc_component2_button = tk.Button(row2_frame, text="Remove DC Component 2", command=remove_dc_component2, padx=10, pady=5, width=15, height=2)
+remove_dc_component2_button.pack(side=tk.LEFT, padx=5, anchor='center')
+
+convolve_signals_button = tk.Button(row2_frame, text="Convolve Two Signals", command=convolve_signals, padx=10, pady=5, width=15, height=2)
+convolve_signals_button.pack(side=tk.LEFT, padx=5, anchor='center')
+
+# Frame for correlation operations
+correlation_frame = ttk.Frame(notebook)
+notebook.add(correlation_frame, text='Correlation')
+
+correlation_button = tk.Button(correlation_frame, text="Perform Correlation", command=convolve_signals, padx=10, pady=5, width=15, height=2)
+correlation_button.pack(side=tk.LEFT, padx=5, anchor='center')
+
+cross_correlation_button = tk.Button(correlation_frame, text="Cross Correlation", command=convolve_signals, padx=10, pady=5, width=15, height=2)
+cross_correlation_button.pack(side=tk.LEFT, padx=5, anchor='center')
+
+auto_correlation_button = tk.Button(correlation_frame, text="Auto Correlation", command=convolve_signals, padx=10, pady=5, width=15, height=2)
+auto_correlation_button.pack(side=tk.LEFT, padx=5, anchor='center')
 
 # Start the main event loop
 root.mainloop()
