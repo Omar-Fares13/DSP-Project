@@ -559,8 +559,6 @@ def remove_dc_component():
         print(f"Error: {e}")
 
 
-
-
 def Smoothing():
     global data1
     if data1 is None:
@@ -829,20 +827,20 @@ def convolve_signals():
         # Length of the result
         len_result = len_signal1 + len_signal2 - 1
 
-        # Initialize result array
-        convolution_result = np.zeros(len_result)
-
         # Perform convolution manually
-        for i in range(len_signal1):
-            for j in range(len_signal2):
-                convolution_result[i + j] += signal1_values[i] * signal2_values[j]
+        convolution_result = [
+            sum(
+                signal1_values[i] * signal2_values[j - i]
+                for i in range(max(0, j - len_signal2 + 1), min(len_signal1, j + 1))
+            )
+            for j in range(len_result)
+        ]
 
         # Update data1 with the convolution result
         data1 = list(enumerate(convolution_result))
 
         # Print the convolution result
         print("Convolution Result:", convolution_result)
-
         # Plot the original signals and the convolution result
         plt.figure(figsize=(12, 5))
 
