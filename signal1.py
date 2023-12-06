@@ -874,6 +874,97 @@ def convolve_signals():
         print(f"Error: {e}")
 
 
+def correlation():
+    global data1, data2
+    if data1 is None or data2 is None:
+        print("Please load both signals.")
+        return
+
+    try:
+        # Extract amplitude values from data1 and data2
+        signal1_values = np.array([amplitude for _, amplitude in data1])
+        signal2_values = np.array([amplitude for _, amplitude in data2])
+
+        N = len(signal2_values)
+    
+        # Compute the cross-correlation function
+        r_12 = np.zeros(N)
+        for n in range(N):
+            for j in range(N):
+                r_12[j] += signal1_values[n] * signal2_values[(n + j)%N]
+            r_12[j] /= N
+    
+        # Compute the root mean square (RMS) values
+        rms_x1 = np.sum(signal1_values**2)
+        rms_x2 = np.sum(signal2_values**2)
+    
+        # Compute the denominator
+        denominator = np.sqrt(rms_x1 * rms_x2)
+    
+        # Normalize the cross-correlation function
+        rho_12 = r_12 / denominator
+
+        # Plot the result
+        plt.stem(rho_12)
+        plt.xlabel('Shift')
+        plt.ylabel('Normalized Cross-Correlation')
+        plt.title('Normalized Cross-Correlation of Two Signals')
+        plt.show()
+
+        print("Normalized Cross-Correlation Result:", rho_12)
+
+    except ValueError as e:
+        print(f"Error: {e}")
+
+
+def time_delay_analysis():
+
+    global data1, data2
+    if data1 is None or data2 is None:
+        print("Please load both signals.")
+        return
+
+    try:
+        # Extract amplitude values from signal1 and signal2
+        signal1_values = np.array([amplitude for _, amplitude in data1])
+        signal2_values = np.array([amplitude for _, amplitude in data2])
+
+        N = len(signal2_values)
+    
+        # Compute the cross-correlation function
+        r_12 = np.zeros(N)
+        for n in range(N):
+            for j in range(N):
+                r_12[j] += signal1_values[n] * signal2_values[(n + j)%N]
+            r_12[j] /= N
+    
+        # Compute the root mean square (RMS) values
+        rms_x1 = np.sum(signal1_values**2)
+        rms_x2 = np.sum(signal2_values**2)
+    
+        # Compute the denominator
+        denominator = np.sqrt(rms_x1 * rms_x2)
+    
+        # Normalize the cross-correlation function
+        rho_12 = r_12 / denominator
+
+        # Find the time delay (index of the maximum value in the cross-correlation)
+        sampling_period = float(simpledialog.askstring("Input", "Enter the sampling period:"))
+        ts = 1 / sampling_period 
+        delay_index = np.argmax(rho_12)
+        delay = delay_index * ts
+
+        # Plot the cross-correlation result
+        plt.stem(rho_12)
+        plt.xlabel('Time Shift')
+        plt.ylabel('Cross-Correlation')
+        plt.title('Cross-Correlation for Time Delay Analysis')
+        plt.show()
+
+        print("Excpected output:", delay)
+    except ValueError as e:
+        print(f"Error: {e}")
+
 # Create a main window
 root = tk.Tk()
 root.title("Signal Viewer")
@@ -995,11 +1086,11 @@ convolve_signals_button.pack(side=tk.LEFT, padx=5, anchor='center')
 correlation_frame = ttk.Frame(notebook)
 notebook.add(correlation_frame, text='Correlation')
 
-correlation_button = tk.Button(correlation_frame, text="Perform Correlation", command=convolve_signals, padx=10, pady=5, width=15, height=2)
+correlation_button = tk.Button(correlation_frame, text="Correlation", command=correlation, padx=10, pady=5, width=15, height=2)
 correlation_button.pack(side=tk.LEFT, padx=5, anchor='center')
 
-cross_correlation_button = tk.Button(correlation_frame, text="Cross Correlation", command=convolve_signals, padx=10, pady=5, width=15, height=2)
-cross_correlation_button.pack(side=tk.LEFT, padx=5, anchor='center')
+time_delay_analysis_button = tk.Button(correlation_frame, text="time delay analysis", command=time_delay_analysis, padx=10, pady=5, width=15, height=2)
+time_delay_analysis_button.pack(side=tk.LEFT, padx=5, anchor='center')
 
 auto_correlation_button = tk.Button(correlation_frame, text="Auto Correlation", command=convolve_signals, padx=10, pady=5, width=15, height=2)
 auto_correlation_button.pack(side=tk.LEFT, padx=5, anchor='center')
