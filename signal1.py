@@ -636,15 +636,16 @@ def delay_signal():
         # Get user input for delay steps
         k = int(simpledialog.askstring("Input", "Enter the number of steps for delaying:"))
 
+        print("Original Signal:", amplitude_values)
+
         # Extract the amplitude values from data1
         amplitude_values = np.array([amplitude for _, amplitude in data1])
+        for i in range(len(amplitude_values)):
+            amplitude_values[i]+=k
 
-        # Perform the delay by adding k zeros at the beginning
-        delayed_signal = np.concatenate(([0.0] * k, amplitude_values[:-k]))
 
         # Print the original and delayed signals
-        print("Original Signal:", amplitude_values)
-        print("Delayed Signal (by {} steps):".format(k), delayed_signal)
+        print("Delayed Signal:", amplitude_values)
 
         # Plot the original and delayed signals
         plt.figure(figsize=(10, 5))
@@ -686,6 +687,8 @@ def advance_signal():
 
         # Extract the amplitude values from data1
         amplitude_values = np.array([amplitude for _, amplitude in data1])
+        for i in range(len(amplitude_values)):
+            amplitude_values[i]-=k
 
         # Perform the advancement by adding k zeros at the end
         advanced_signal = np.concatenate((amplitude_values[k:], [0.0] * k))
@@ -892,15 +895,15 @@ def correlation():
         r_12 = np.zeros(N)
         for n in range(N):
             for j in range(N):
-                r_12[j] += signal1_values[n] * signal2_values[(n + j)%N]
-            r_12[j] /= N
+                r_12[j] += signal1_values[n] * signal2_values[(n + j)%N]/N
+
     
         # Compute the root mean square (RMS) values
         rms_x1 = np.sum(signal1_values**2)
         rms_x2 = np.sum(signal2_values**2)
     
         # Compute the denominator
-        denominator = np.sqrt(rms_x1 * rms_x2)
+        denominator = np.sqrt(rms_x1 * rms_x2)/N
     
         # Normalize the cross-correlation function
         rho_12 = r_12 / denominator
@@ -936,15 +939,15 @@ def time_delay_analysis():
         r_12 = np.zeros(N)
         for n in range(N):
             for j in range(N):
-                r_12[j] += signal1_values[n] * signal2_values[(n + j)%N]
-            r_12[j] /= N
+                r_12[j] += signal1_values[n] * signal2_values[(n + j)%N]/N
+
     
         # Compute the root mean square (RMS) values
         rms_x1 = np.sum(signal1_values**2)
         rms_x2 = np.sum(signal2_values**2)
     
         # Compute the denominator
-        denominator = np.sqrt(rms_x1 * rms_x2)
+        denominator = np.sqrt(rms_x1 * rms_x2)/N
     
         # Normalize the cross-correlation function
         rho_12 = r_12 / denominator
@@ -976,15 +979,15 @@ def custom_correlation(x1 , x2):
         r_12 = np.zeros(N)
         for n in range(N):
             for j in range(N):
-                r_12[j] += x1[n] * x2[(n + j)%N]
-            r_12[j] /= N
+                r_12[j] +=x1[n] *x2[(n + j)%N]/N
+
     
         # Compute the root mean square (RMS) values
         rms_x1 = np.sum(x1**2)
         rms_x2 = np.sum(x2**2)
     
         # Compute the denominator
-        denominator = np.sqrt(rms_x1 * rms_x2)
+        denominator = np.sqrt(rms_x1 * rms_x2)/N
     
         # Normalize the cross-correlation function
         rho_12 = r_12 / denominator
@@ -1086,10 +1089,8 @@ def template_matching(class1_entry, class2_entry, test_entry, popup):
             correlation_class1 = custom_correlation(test_signal , avg_signal_class1)
             correlation_class2 = custom_correlation(test_signal , avg_signal_class2)
 
-            print(f"Correlation Class 1: {correlation_class1}")
-            print(f"Correlation Class 2: {correlation_class2}")
             # Determine the class based on correlation
-            if np.any(correlation_class1 > correlation_class2):
+            if max(correlation_class1) > max(correlation_class2):
              print(f"{test_file} down movement of EOG signal")
             else:
              print(f"{test_file} up movement of EOG signal")
