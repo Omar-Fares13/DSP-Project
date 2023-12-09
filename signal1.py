@@ -241,7 +241,17 @@ def perform_accumulation():
     print(f"Accumulation result: {result}")
     plot_signal(result)
 
-def plot_signal(data):
+def plot_signal1(data):
+    plt.figure(figsize=(8, 4))
+    indices, amplitudes = zip(*data)
+    plt.plot(indices, amplitudes, 'bo-')
+    plt.title('Signal')
+    plt.xlabel('Index/Sample')
+    plt.ylabel('Amplitude')
+    plt.grid(True, linestyle='--', alpha=0.7)  # Add horizontal grid
+    plt.show()
+
+def plot_signal2(data):
     plt.figure(figsize=(8, 4))
     indices, amplitudes = zip(*data)
     plt.plot(indices, amplitudes, 'bo-')
@@ -625,6 +635,42 @@ def DerivativeSignal():
     return
 
 
+def advance_delay_signal(signal, steps):
+    length = len(signal)
+    
+    # Advance the signal (trim from the beginning)
+    if steps > 0:
+        shifted_signal = signal[steps:]
+        new_indices = np.arange(1, length - steps + 1)
+    # Delay the signal (zero-pad at the beginning)
+    elif steps < 0:
+        shifted_signal = np.concatenate((np.zeros(-steps), signal))
+        new_indices = np.arange(1, length + 1)
+    else:
+        # No shift, return the original signal
+        shifted_signal = signal
+        new_indices = np.arange(1, length + 1)
+    
+    # Plot the original and shifted signals (excluding zero-padded values)
+    plt.figure(figsize=(10, 5))
+
+    plt.subplot(2, 1, 1)
+    plt.plot(np.arange(1, length + 1), signal, label='Original Signal')
+    plt.title('Original Signal')
+    plt.xlabel('Sample Index')
+    plt.ylabel('Amplitude')
+    plt.legend()
+
+    plt.subplot(2, 1, 2)
+    plt.plot(new_indices, shifted_signal, label=f'Shifted Signal ({steps} steps)')
+    plt.title(f'Shifted Signal ({steps} steps)')
+    plt.xlabel('Sample Index')
+    plt.ylabel('Amplitude')
+    plt.legend()
+
+    plt.tight_layout()
+    plt.show()
+
 
 def delay_signal():
     global data1
@@ -636,38 +682,32 @@ def delay_signal():
         # Get user input for delay steps
         k = int(simpledialog.askstring("Input", "Enter the number of steps for delaying:"))
 
-        print("Original Signal:", amplitude_values)
-
         # Extract the amplitude values from data1
         amplitude_values = np.array([amplitude for _, amplitude in data1])
-        for i in range(len(amplitude_values)):
-            amplitude_values[i]+=k
-
-
-        # Print the original and delayed signals
-        print("Delayed Signal:", amplitude_values)
-
+        
+        res = advance_delay_signal(amplitude_values, k)
+        
         # Plot the original and delayed signals
-        plt.figure(figsize=(10, 5))
+    #     plt.figure(figsize=(10, 5))
 
-        plt.subplot(2, 1, 1)
-        plt.plot(amplitude_values, label='Original Signal')
-        plt.title('Original Signal')
-        plt.xlabel('Sample Index')
-        plt.ylabel('Amplitude')
-        plt.legend()
+    #     plt.subplot(2, 1, 1)
+    #     plt.plot(amplitude_values, label='Original Signal')
+    #     plt.title('Original Signal')
+    #     plt.xlabel('Sample Index')
+    #     plt.ylabel('Amplitude')
+    #     plt.legend()
 
-        plt.subplot(2, 1, 2)
-        plt.plot(delayed_signal, label=f'Delayed Signal (by {k} steps)')
-        plt.title(f'Delayed Signal (by {k} steps)')
-        plt.xlabel('Sample Index')
-        plt.ylabel('Amplitude')
-        plt.legend()
+    #     plt.subplot(2, 1, 2)
+    #     plt.plot(res, label=f'Delayed Signal (by {k} steps)')
+    #     plt.title(f'Delayed Signal (by {k} steps)')
+    #     plt.xlabel('Sample Index')
+    #     plt.ylabel('Amplitude')
+    #     plt.legend()
 
-        plt.tight_layout()
-        plt.show()
+    #     plt.tight_layout()
+    #     plt.show()
 
-        print(f"Signal delayed successfully by {k} steps.")
+    #     print(f"Signal delayed successfully by {k} steps.")
 
     except ValueError as e:
         print(f"Error: {e}")
@@ -1101,7 +1141,119 @@ def template_matching(class1_entry, class2_entry, test_entry, popup):
         print(f"Error: {e}")
 
 
+def fast_convolution():
+    global data1, data2
 
+    if data1 is None or data2 is None:
+        print("Please load both signals.")
+        return
+
+    try:
+        # Extract signals from data
+        signal1 = np.array([amplitude for _, amplitude in data1])
+        signal2 = np.array([amplitude for _, amplitude in data2])
+
+        # Make sure the signals have the same length
+        max_length = max(len(signal1), len(signal2))
+        signal1 = np.pad(signal1, (0, max_length - len(signal1)))
+        signal2 = np.pad(signal2, (0, max_length - len(signal2)))
+
+        # Perform FFT on both signals
+        dft_signal1 = custom_dft(signal1)
+        dft_signal2 = custom_dft(signal2)
+
+        # Element-wise multiplication in the frequency domain
+        dft_result = dft_signal1 * dft_signal2
+
+        # Perform IFFT on the result
+        convolution_result = custom_idft(dft_result)
+
+        print("Convolution Done successfully.")
+
+        # Print the convolution result
+        print("Convolution Result (Real Part):", convolution_result.real)        
+        # Plot the signals and convolution result
+        plt.figure(figsize=(12, 4))
+
+        # Plot the first signal
+        plt.subplot(3, 1, 1)
+        plt.plot(signal1, label='Signal 1')
+        plt.title('Signal 1')
+        plt.legend()
+
+        # Plot the second signal
+        plt.subplot(3, 1, 2)
+        plt.plot(signal2, label='Signal 2')
+        plt.title('Signal 2')
+        plt.legend()
+
+        # Plot the convolution result
+        plt.subplot(3, 1, 3)
+        plt.plot(convolution_result, label='Convolution Result', color='orange')
+        plt.title('Convolution Result')
+        plt.legend()
+
+        plt.tight_layout()
+        plt.show()
+
+    except ValueError as e:
+        print(f"Error: {e}")
+
+
+def conjugate(array):
+    return np.array([x.real - 1j * x.imag for x in array])
+
+def fast_correlation():
+    global data1, data2
+
+    if data1 is None:
+        print("Please load signals.")
+        return
+    signal2 = None  # Define signal2 here with a default value
+    try:
+        # Extract signals from data
+        signal1 = np.array([amplitude for _, amplitude in data1])
+        if data2 is not None:
+            signal2 = np.array([amplitude for _, amplitude in data2])
+        # Compute the Fourier transform of the signal(s)
+        fft_signal1 = custom_dft(signal1)
+        fft_signal2 = custom_dft(signal2) if signal2 is not None else fft_signal1
+
+        # Manual complex conjugation
+        fft_signal2_conjugate = conjugate(fft_signal2)
+
+        # Compute the auto-correlation or cross-correlation in the frequency domain
+        fft_result = fft_signal1 * fft_signal2_conjugate
+
+        # Compute the inverse Fourier transform to get the correlation result
+        correlation_result = custom_idft(fft_result)
+        plt.figure(figsize=(12, 4))
+        
+        plt.subplot(3, 1, 1)
+        plt.plot(signal1, label='Signal 1')
+        plt.title('Signal 1')
+        plt.legend()
+
+        if data2 is not None:
+            plt.subplot(3, 1, 2)
+            plt.plot(signal2, label='Signal 2')
+            plt.title('Signal 2')
+            plt.legend()
+
+            plt.subplot(3, 1, 3)
+            plt.plot(correlation_result, label='Cross-Correlation Result', color='green')
+            plt.title('Cross-Correlation Result')
+            plt.legend()
+        else:
+            plt.subplot(3, 1, 2)
+            plt.plot(correlation_result, label='Auto-Correlation Result', color='orange')
+            plt.title('Auto-Correlation Result')
+            plt.legend()
+
+        plt.tight_layout()
+        plt.show()
+    except ValueError as e:
+        print(f"Error: {e}")
 
 # Create a main window
 root = tk.Tk()
@@ -1124,25 +1276,27 @@ open_button_2.pack(side=tk.LEFT, padx=5, anchor='center')
 generate_signal_button = tk.Button(file_frame, text="Generate Signal", command=generate_signal, padx=10, pady=5, width=15, height=2)
 generate_signal_button.pack(side=tk.LEFT, padx=5, anchor='center')
 
-# Frame for arithmetic operation buttons
-arithmetic_frame = ttk.Frame(notebook)
-notebook.add(arithmetic_frame, text='Arithmetic')
+plot1_button = tk.Button(file_frame, text="Plot Signal 1", command=lambda: plot_signal1(data1), padx=10, pady=5, width=15, height=2)
+plot1_button.pack(side=tk.LEFT, padx=5, anchor='center')
 
-addition_button = tk.Button(arithmetic_frame, text="Perform Addition", command=perform_addition, padx=10, pady=5, width=15, height=2)
+plot2_button = tk.Button(file_frame, text="Plot Signal 2", command=lambda: plot_signal2(data2), padx=10, pady=5, width=15, height=2)
+plot2_button.pack(side=tk.LEFT, padx=5, anchor='center')
+
+# Frame for arithmetic operation buttons
+operation_frame = ttk.Frame(notebook)
+notebook.add(operation_frame, text='Operations')
+
+addition_button = tk.Button(operation_frame, text="Perform Addition", command=perform_addition, padx=10, pady=5, width=15, height=2)
 addition_button.pack(side=tk.LEFT, padx=5, anchor='center')
 
-subtraction_button = tk.Button(arithmetic_frame, text="Perform Subtraction", command=perform_subtraction, padx=10, pady=5, width=15, height=2)
+subtraction_button = tk.Button(operation_frame, text="Perform Subtraction", command=perform_subtraction, padx=10, pady=5, width=15, height=2)
 subtraction_button.pack(side=tk.LEFT, padx=5, anchor='center')
 
-multiplication_button = tk.Button(arithmetic_frame, text="Perform Multiplication", command=perform_multiplication, padx=10, pady=5, width=15, height=2)
+multiplication_button = tk.Button(operation_frame, text="Perform Multiplication", command=perform_multiplication, padx=10, pady=5, width=15, height=2)
 multiplication_button.pack(side=tk.LEFT, padx=5, anchor='center')
 
-squaring_button = tk.Button(arithmetic_frame, text="Perform Squaring", command=perform_squaring, padx=10, pady=5, width=15, height=2)
+squaring_button = tk.Button(operation_frame, text="Perform Squaring", command=perform_squaring, padx=10, pady=5, width=15, height=2)
 squaring_button.pack(side=tk.LEFT, padx=5, anchor='center')
-
-# Frame for other operations
-operation_frame = ttk.Frame(notebook)
-notebook.add(operation_frame, text='Other Operations')
 
 shifting_button = tk.Button(operation_frame, text="Perform Shifting", command=perform_shifting, padx=10, pady=5, width=15, height=2)
 shifting_button.pack(side=tk.LEFT, padx=5, anchor='center')
@@ -1152,13 +1306,6 @@ normalization_button.pack(side=tk.LEFT, padx=5, anchor='center')
 
 accumulation_button = tk.Button(operation_frame, text="Perform Accumulation", command=perform_accumulation, padx=10, pady=5, width=15, height=2)
 accumulation_button.pack(side=tk.LEFT, padx=5, anchor='center')
-
-# Frame for plotting buttons
-plotting_frame = ttk.Frame(notebook)
-notebook.add(plotting_frame, text='Plotting')
-
-plot_button = tk.Button(plotting_frame, text="Plot Signal", command=lambda: plot_signal(data1), padx=10, pady=5, width=15, height=2)
-plot_button.pack(side=tk.LEFT, padx=5, anchor='center')
 
 # Frame for frequency domain operations
 frequency_frame = ttk.Frame(notebook)
@@ -1232,6 +1379,17 @@ time_delay_analysis_button.pack(side=tk.LEFT, padx=5, anchor='center')
 
 template_matching_button = tk.Button(correlation_frame, text="template matching", command=template_matching_popup, padx=10, pady=5, width=15, height=2)
 template_matching_button.pack(side=tk.LEFT, padx=5, anchor='center')
+
+# Frame for correlation operations
+task8_frame = ttk.Frame(notebook)
+notebook.add(task8_frame, text='task8')
+
+convlotion_button = tk.Button(task8_frame, text="Fast Convlotion", command=fast_convolution, padx=10, pady=5, width=15, height=2)
+convlotion_button.pack(side=tk.LEFT, padx=5, anchor='center')
+
+correlation_button = tk.Button(task8_frame, text="Fast Correlation", command=fast_correlation, padx=10, pady=5, width=15, height=2)
+correlation_button.pack(side=tk.LEFT, padx=5, anchor='center')
+
 
 # Start the main event loop
 root.mainloop()
