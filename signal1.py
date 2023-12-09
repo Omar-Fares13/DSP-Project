@@ -134,7 +134,7 @@ def perform_addition():
         result.append((index1, amplitude1 + amplitude2))
 
     print(f"Addition result: {result}")
-    plot_signal(result)
+    plot_signal1(result)
 
 def perform_subtraction():
     global data1, data2
@@ -160,7 +160,7 @@ def perform_subtraction():
         result.append((index1, amplitude1 - amplitude2))
 
     print(f"Subtraction result: {result}")
-    plot_signal(result)
+    plot_signal1(result)
 
 def perform_multiplication():
     global data1
@@ -172,7 +172,7 @@ def perform_multiplication():
         constant = float(simpledialog.askstring("Input", "Enter a constant for multiplication:"))
         result = [(index, amplitude * constant) for index, amplitude in data1]
         print(f"Multiplication result: {result}")
-        plot_signal(result)
+        plot_signal1(result)
     except ValueError:
         print("Invalid input. Please enter a number.")    
 
@@ -184,7 +184,7 @@ def perform_squaring():
 
     result = [(index, amplitude**2) for index, amplitude in data1]
     print(f"Squaring result: {result}")
-    plot_signal(result)
+    plot_signal1(result)
 
 def perform_shifting():
     global data1
@@ -196,7 +196,7 @@ def perform_shifting():
         constant = float(simpledialog.askstring("Input", "Enter a constant for shifting:"))
         result = [(index, amplitude + constant) for index, amplitude in data1]
         print(f"Shifting result: {result}")
-        plot_signal(result)
+        plot_signal1(result)
     except ValueError:
         print("Invalid input. Please enter a number.")
 
@@ -221,7 +221,7 @@ def perform_normalization():
             result = [(index, (amplitude - min_value) / (max_value - min_value)) for index, amplitude in data1]
 
         print(f"Normalization result: {result}")
-        plot_signal(result)
+        plot_signal1(result)
     except ValueError:
         print("Invalid input. Please enter a number.")
 
@@ -239,7 +239,7 @@ def perform_accumulation():
         result.append((index, accumulated_value))
 
     print(f"Accumulation result: {result}")
-    plot_signal(result)
+    plot_signal1(result)
 
 def plot_signal1(data):
     plt.figure(figsize=(8, 4))
@@ -595,7 +595,7 @@ def Smoothing():
             moving_avg.append((n, avg_value))
 
         print(f"Smoothing result: {moving_avg}")
-        plot_signal(moving_avg)
+        plot_signal1(moving_avg)
 
     except ValueError:
         print("Invalid input. Please enter a valid number.")
