@@ -4,7 +4,7 @@ from tkinter import ttk
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-
+import math
 # Global variables to store data
 data1 = None
 data2 = None
@@ -1255,6 +1255,283 @@ def fast_correlation():
     except ValueError as e:
         print(f"Error: {e}")
 
+def rectangular_window(N):
+    n = np.arange(-(N-1)/2, (N-1)/2 +1 , 1)
+    return np.ones_like(N)
+
+def hanning_window(N):
+    n = np.arange(-(N-1)/2, (N-1)/2 +1 , 1)
+    return 0.5 + 0.5 * np.cos(2 * np.pi * n / N)
+
+def hamming_window(N):
+    n = np.arange(-(N-1)/2, (N-1)/2 +1 , 1)
+    return 0.54 + 0.46 * np.cos(2 * np.pi * n / N)
+
+def blackman_window(N):
+    n = np.arange(-(N-1)/2, (N-1)/2 +1 , 1)
+    return 0.42 + 0.5 * np.cos((2 * np.pi * n) / (N - 1)) + 0.08 * np.cos((4 * np.pi * n) / (N - 1)) 
+global ideal_res
+
+def read_points_FIR():
+    file_path = filedialog.askopenfilename()
+    x_values = []
+    y_values = []
+    if file_path:
+        with open(file_path, 'r') as file:
+            for line in file:
+                parts = line.strip().split()
+                if len(parts) == 2:
+                    x_values.append(float(parts[0]))
+                    y_values.append(float(parts[1]))
+        return np.array(x_values), np.array(y_values)
+    else:
+        return None
+
+
+def convolve_FIR(x1,y1,x2,y2):
+
+    indices1, samples1 = x1,y1
+    indices2, samples2 = x2,y2
+
+    result_indices = list(range(int(min(indices1)+min(indices2)), int(max(indices1)+max(indices2)+1)))
+    result_samples = [0] * len(result_indices)
+
+    for i in range(len(result_indices)):
+        index = result_indices[i]
+        for j in range(len(indices1)):
+            diff = index - indices1[j]
+            index_in_indices2 = np.where(indices2 == diff)[0]
+            if len(index_in_indices2) > 0:
+                index_in_indices2 = index_in_indices2[0]
+                result_samples[i] += samples1[j] * samples2[index_in_indices2]
+
+    print("Result Indices:", result_indices)
+    print("Result Samples:", result_samples)
+    plt.plot(result_indices, result_samples)
+    plt.show()
+    return result_indices,result_samples
+
+
+def FIR():
+    def apply_the_filter():
+        selected_filter_type = filter_type.get()
+        sampling_frequency_value = float(analog_frequency_entry.get())
+        cutoff_frequency_value = float(cutoff_frequency_entry.get())
+        f1_value = float(frequency1_entry.get())
+        f2_value = float(frequency2_entry.get())
+        Attenuation_value = float(Stop_Attenuation_entry.get())
+        transition = float(TN_entry.get())
+
+        if Attenuation_value <= 21 :
+            N = int(0.9 / ( transition / sampling_frequency_value))
+            N = N + 1 if N % 2 == 0 else N
+            window_fun = "rectangular"
+            window_weights = rectangular_window(N)  
+
+        elif Attenuation_value <= 44 :
+            N = int(3.1 / ( transition / sampling_frequency_value))
+            N = N + 1 if N % 2 == 0 else N
+            window_fun = "hanning"
+            window_weights = hanning_window(N)  
+
+        elif Attenuation_value <= 53 :
+            N = int(3.3 / ( transition / sampling_frequency_value))
+            N = N + 1 if N % 2 == 0 else N
+            window_fun = "hamming"
+            window_weights = hamming_window(N)  
+
+        elif Attenuation_value <= 74 :
+            N = int (5.5 / ( transition / sampling_frequency_value))
+            N = N + 1 if N % 2 == 0 else N
+            window_fun = "blackman"
+            window_weights = blackman_window(N)  
+
+        print(window_weights)
+        
+        if selected_filter_type =="low" :
+            print("low")
+            n = np.arange(-(N-1)/2, (N-1)/2 +1 , 1)
+            F = (cutoff_frequency_value + 0.5 * transition) / sampling_frequency_value
+            res = 2 * F * np.sinc(2 * F * n) 
+        elif  selected_filter_type =="high" :
+            print("high")
+            n = np.arange(-(N-1)/2, (N-1)/2 +1 , 1)
+            F = (cutoff_frequency_value - 0.5 * transition) / sampling_frequency_value
+            res = - 2 * F * np.sinc(2 * F * n)
+        elif  selected_filter_type =="bandpass" :
+            print("bandpass")
+            n = np.arange(-(N-1)/2, (N-1)/2 +1 , 1)
+            F1 = (f1_value - 0.5 * transition) / sampling_frequency_value
+            F2 = (f2_value + 0.5 * transition) / sampling_frequency_value
+            res =  2 * F2 * np.sinc(2 * F2 * n) - 2 * F1 * np.sinc(2 * F1 * n)
+        elif  selected_filter_type =="bandstop" :
+            print("bandstop")
+            n = np.arange(-(N-1)/2, (N-1)/2 +1 , 1)
+            F1 = (f1_value + 0.5 * transition) / sampling_frequency_value
+            F2 = (f2_value - 0.5 * transition) / sampling_frequency_value
+            res = 2 * f1_value * np.sinc(2 * F1 * n) - 2 * F2 * np.sinc(2 * F2 * n)
+        
+        arr = np.where(n == 0)[0]
+        if len(arr) > 0:
+            if selected_filter_type == "low":
+                res[arr] = 2 * F
+            elif selected_filter_type == "high":
+                res[arr] = 1 - 2 * F
+            elif selected_filter_type== "bandpass":
+                res[arr] = 2 * (F2 - F1)
+            elif selected_filter_type == "bandstop":
+                res[arr] = 1 - 2 * (F2 - F1)
+        outPut = res * window_weights 
+        print(outPut)
+        path = 'C:\\New folder\\ilter.txt'
+        with open(path, 'w') as file:
+            for i, size in enumerate(outPut):
+                file.write(str(i - (N-1)/2) + " " + str(outPut[i]) + "\n")
+        return outPut
+    popup = tk.Toplevel(root)
+    popup.title("FIR")
+
+    filter_type_label = ttk.Label(popup, text="Signal Type:")
+    filter_type_label.grid(row=0, column=0, pady=5, sticky='w')
+    filter_type = ttk.Combobox(popup, values=['low', 'high', 'bandpass', 'bandstop'], state='readonly')
+    filter_type.grid(row=0, column=1, pady=5)
+
+    analog_frequency_label = ttk.Label(popup, text="Sampling Frequency (Hz):")
+    analog_frequency_label.grid(row=1, column=0, pady=5, sticky='w')
+    analog_frequency_entry = ttk.Entry(popup)
+    analog_frequency_entry.grid(row=1, column=1, pady=5)
+
+    cutoff_frequency_label = ttk.Label(popup, text="Cutoff Frequency (Hz):")
+    cutoff_frequency_label.grid(row=2, column=0, pady=5, sticky='w')
+    cutoff_frequency_entry = ttk.Entry(popup)
+    cutoff_frequency_entry.grid(row=2, column=1, pady=5)
+
+    frequency1_label = ttk.Label(popup, text="Lower Cutoff Frequency (Hz):")
+    frequency1_label.grid(row=3, column=0, pady=5, sticky='w')
+    frequency1_entry = ttk.Entry(popup)
+    frequency1_entry.grid(row=3, column=1, pady=5)
+
+    frequency2_label = ttk.Label(popup, text="Upper Cutoff Frequency (Hz):")
+    frequency2_label.grid(row=4, column=0, pady=5, sticky='w')
+    frequency2_entry = ttk.Entry(popup)
+    frequency2_entry.grid(row=4, column=1, pady=5)
+
+    Stop_Attenuation_label = ttk.Label(popup, text="Stop Attenuation (Delta S):")
+    Stop_Attenuation_label.grid(row=5, column=0, pady=5, sticky='w')
+    Stop_Attenuation_entry = ttk.Entry(popup)
+    Stop_Attenuation_entry.grid(row=5, column=1, pady=5)
+
+    TN_label = ttk.Label(popup, text="Transition Band (Hz):")
+    TN_label.grid(row=6, column=0, pady=5, sticky='w')
+    TN_entry = ttk.Entry(popup)
+    TN_entry.grid(row=6, column=1, pady=5)
+
+    generate_button_popup = ttk.Button(popup, text="Generate and Plot", command=apply_the_filter)
+    generate_button_popup.grid(row=7, column=0, columnspan=2, pady=10)
+
+    popup.mainloop()
+
+def Resampling():
+    
+    def resample():
+        down_sampling = int(down_sampling_entry.get())
+        up_sampling = int(up_sampling_entry.get())
+        fir = FIR() 
+        indx , val = read_points_FIR()
+        n=indx
+        h_n = val
+        
+        if down_sampling == 0 and up_sampling != 0:
+            result = []
+            vlaues = []
+            for elem in val:
+                result.append(elem)
+                result.extend([0] * (up_sampling - 1))
+            newLen = len(indx) * up_sampling
+            vlaues = np.arange(max(indx)+1,newLen,1)
+            indx.extend(vlaues)
+            convolve_FIR(indx,result,indx,val)
+            resampled_signal = np.column_stack((indx, result))
+
+        elif down_sampling != 0 and up_sampling == 0:
+
+            indx,val = convolve_FIR(indx,val,n,h_n)
+
+            result = []
+            i = 0
+            while i < len(val):
+                result.append(val[i])
+                i += down_sampling
+
+
+            Numba = len(indx) / down_sampling
+            values = np.arange(min(indx),Numba - abs(min(indx)))
+            values = list(values)
+            result = list(result)
+            print(values)
+            print(result)
+            resampled_signal = np.column_stack((values, result))
+
+        elif down_sampling != 0 and up_sampling != 0:
+
+            result = []
+            values = []
+            for elem in values:
+                result.append(elem)
+                result.extend([0] * (up_sampling - 1))
+            Numba = len(indx) * up_sampling
+            indx = np.arange(min(indx) , Numba-abs(min(indx)), 1)
+
+            indx , values = convolve_FIR(indx, val, n, h_n)
+
+
+            result= []
+            i = 0
+            while i < len(val):
+                result.append(val[i])
+                i += down_sampling
+
+            Numba = len(indx) / down_sampling
+            values = np.arange(min(indx), Numba - abs(min(indx)))
+            values = list(values)
+            result = list(result)
+            print(values)
+            print(result)
+
+            resampled_signal = np.column_stack((indx, result))
+            print(resampled_signal)
+            plt.plot( n , resampled_signal)
+            plt.title('Generated Signal')
+            plt.xlabel('Time (s)')
+            plt.ylabel('Amplitude')
+            plt.axhline(0, color='black', linewidth=0.5)  # Horizontal axis
+            plt.axvline(0, color='black', linewidth=0.5)  # Vertical axis
+            plt.show()
+
+    popup = tk.Toplevel(root)
+    popup.title("Resampling")
+
+    down_sampling_label = ttk.Label(popup, text="down Sampling:")
+    down_sampling_label.grid(row=7, column=0, pady=5, sticky='w')
+    down_sampling_entry = ttk.Entry(popup)
+    down_sampling_entry.grid(row=7, column=1, pady=5)
+    
+    up_sampling_label = ttk.Label(popup, text="UP sampling:")
+    up_sampling_label.grid(row=8, column=0, pady=5, sticky='w')
+    up_sampling_entry = ttk.Entry(popup)
+    up_sampling_entry.grid(row=8, column=1, pady=5)
+    
+    generate_button_popup = ttk.Button(popup, text="Resample", command=resample)
+    generate_button_popup.grid(row=9, column=0, columnspan=2, pady=10)
+
+    popup.mainloop()
+
+
+
+
+
+
+
 # Create a main window
 root = tk.Tk()
 root.title("Signal Viewer")
@@ -1388,6 +1665,16 @@ convlotion_button = tk.Button(task8_frame, text="Fast Convlotion", command=fast_
 convlotion_button.pack(side=tk.LEFT, padx=5, anchor='center')
 
 correlation_button = tk.Button(task8_frame, text="Fast Correlation", command=fast_correlation, padx=10, pady=5, width=15, height=2)
+correlation_button.pack(side=tk.LEFT, padx=5, anchor='center')
+
+# Frame for correlation operations
+FIR_frame = ttk.Frame(notebook)
+notebook.add(FIR_frame, text='FIR')
+
+convlotion_button = tk.Button(FIR_frame, text="Filtering", command= FIR , padx=10, pady=5, width=15, height=2)
+convlotion_button.pack(side=tk.LEFT, padx=5, anchor='center')
+
+correlation_button = tk.Button(FIR_frame, text="Resampling", command=Resampling, padx=10, pady=5, width=15, height=2)
 correlation_button.pack(side=tk.LEFT, padx=5, anchor='center')
 
 
