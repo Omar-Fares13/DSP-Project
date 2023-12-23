@@ -1383,8 +1383,8 @@ def FIR():
                 res[arr] = 1 - 2 * (F2 - F1)
         outPut = res * window_weights 
         print(outPut)
-        path = 'C:\\New folder\\ilter.txt'
-        with open(path, 'w') as file:
+
+        with open("filter.txt", 'w') as file:
             for i, size in enumerate(outPut):
                 file.write(str(i - (N-1)/2) + " " + str(outPut[i]) + "\n")
         return outPut
@@ -1431,100 +1431,100 @@ def FIR():
 
     popup.mainloop()
 
-def Resampling():
+# def Resampling():
     
-    def resample():
-        down_sampling = int(down_sampling_entry.get())
-        up_sampling = int(up_sampling_entry.get())
-        fir = FIR() 
-        indx , val = read_points_FIR()
-        n=indx
-        h_n = val
+#     def resample():
+#         down_sampling = int(down_sampling_entry.get())
+#         up_sampling = int(up_sampling_entry.get())
+#         fir = FIR() 
+#         indx , val = read_points_FIR()
+#         n=indx
+#         h_n = val
         
-        if down_sampling == 0 and up_sampling != 0:
-            result = []
-            vlaues = []
-            for elem in val:
-                result.append(elem)
-                result.extend([0] * (up_sampling - 1))
-            newLen = len(indx) * up_sampling
-            vlaues = np.arange(max(indx)+1,newLen,1)
-            indx.extend(vlaues)
-            convolve_FIR(indx,result,indx,val)
-            resampled_signal = np.column_stack((indx, result))
+#         if down_sampling == 0 and up_sampling != 0:
+#             result = []
+#             vlaues = []
+#             for elem in val:
+#                 result.append(elem)
+#                 result.extend([0] * (up_sampling - 1))
+#             newLen = len(indx) * up_sampling
+#             vlaues = np.arange(max(indx)+1,newLen,1)
+#             indx.extend(vlaues)
+#             convolve_FIR(indx,result,indx,val)
+#             resampled_signal = np.column_stack((indx, result))
 
-        elif down_sampling != 0 and up_sampling == 0:
+#         elif down_sampling != 0 and up_sampling == 0:
 
-            indx,val = convolve_FIR(indx,val,n,h_n)
+#             indx,val = convolve_FIR(indx,val,n,h_n)
 
-            result = []
-            i = 0
-            while i < len(val):
-                result.append(val[i])
-                i += down_sampling
-
-
-            Numba = len(indx) / down_sampling
-            values = np.arange(min(indx),Numba - abs(min(indx)))
-            values = list(values)
-            result = list(result)
-            print(values)
-            print(result)
-            resampled_signal = np.column_stack((values, result))
-
-        elif down_sampling != 0 and up_sampling != 0:
-
-            result = []
-            values = []
-            for elem in values:
-                result.append(elem)
-                result.extend([0] * (up_sampling - 1))
-            Numba = len(indx) * up_sampling
-            indx = np.arange(min(indx) , Numba-abs(min(indx)), 1)
-
-            indx , values = convolve_FIR(indx, val, n, h_n)
+#             result = []
+#             i = 0
+#             while i < len(val):
+#                 result.append(val[i])
+#                 i += down_sampling
 
 
-            result= []
-            i = 0
-            while i < len(val):
-                result.append(val[i])
-                i += down_sampling
+#             Numba = len(indx) / down_sampling
+#             values = np.arange(min(indx),Numba - abs(min(indx)))
+#             values = list(values)
+#             result = list(result)
+#             print(values)
+#             print(result)
+#             resampled_signal = np.column_stack((values, result))
 
-            Numba = len(indx) / down_sampling
-            values = np.arange(min(indx), Numba - abs(min(indx)))
-            values = list(values)
-            result = list(result)
-            print(values)
-            print(result)
+#         elif down_sampling != 0 and up_sampling != 0:
 
-            resampled_signal = np.column_stack((indx, result))
-            print(resampled_signal)
-            plt.plot( n , resampled_signal)
-            plt.title('Generated Signal')
-            plt.xlabel('Time (s)')
-            plt.ylabel('Amplitude')
-            plt.axhline(0, color='black', linewidth=0.5)  # Horizontal axis
-            plt.axvline(0, color='black', linewidth=0.5)  # Vertical axis
-            plt.show()
+#             result = []
+#             values = []
+#             for elem in values:
+#                 result.append(elem)
+#                 result.extend([0] * (up_sampling - 1))
+#             Numba = len(indx) * up_sampling
+#             indx = np.arange(min(indx) , Numba-abs(min(indx)), 1)
 
-    popup = tk.Toplevel(root)
-    popup.title("Resampling")
+#             indx , values = convolve_FIR(indx, val, n, h_n)
 
-    down_sampling_label = ttk.Label(popup, text="down Sampling:")
-    down_sampling_label.grid(row=7, column=0, pady=5, sticky='w')
-    down_sampling_entry = ttk.Entry(popup)
-    down_sampling_entry.grid(row=7, column=1, pady=5)
+
+#             result= []
+#             i = 0
+#             while i < len(val):
+#                 result.append(val[i])
+#                 i += down_sampling
+
+#             Numba = len(indx) / down_sampling
+#             values = np.arange(min(indx), Numba - abs(min(indx)))
+#             values = list(values)
+#             result = list(result)
+#             print(values)
+#             print(result)
+
+#             resampled_signal = np.column_stack((indx, result))
+#             print(resampled_signal)
+#             plt.plot( n , resampled_signal)
+#             plt.title('Generated Signal')
+#             plt.xlabel('Time (s)')
+#             plt.ylabel('Amplitude')
+#             plt.axhline(0, color='black', linewidth=0.5)  # Horizontal axis
+#             plt.axvline(0, color='black', linewidth=0.5)  # Vertical axis
+#             plt.show()
+
+#     popup = tk.Toplevel(root)
+#     popup.title("Resampling")
+
+#     down_sampling_label = ttk.Label(popup, text="down Sampling:")
+#     down_sampling_label.grid(row=7, column=0, pady=5, sticky='w')
+#     down_sampling_entry = ttk.Entry(popup)
+#     down_sampling_entry.grid(row=7, column=1, pady=5)
     
-    up_sampling_label = ttk.Label(popup, text="UP sampling:")
-    up_sampling_label.grid(row=8, column=0, pady=5, sticky='w')
-    up_sampling_entry = ttk.Entry(popup)
-    up_sampling_entry.grid(row=8, column=1, pady=5)
+#     up_sampling_label = ttk.Label(popup, text="UP sampling:")
+#     up_sampling_label.grid(row=8, column=0, pady=5, sticky='w')
+#     up_sampling_entry = ttk.Entry(popup)
+#     up_sampling_entry.grid(row=8, column=1, pady=5)
     
-    generate_button_popup = ttk.Button(popup, text="Resample", command=resample)
-    generate_button_popup.grid(row=9, column=0, columnspan=2, pady=10)
+#     generate_button_popup = ttk.Button(popup, text="Resample", command=resample)
+#     generate_button_popup.grid(row=9, column=0, columnspan=2, pady=10)
 
-    popup.mainloop()
+#     popup.mainloop()
 
 
 
@@ -1671,11 +1671,15 @@ correlation_button.pack(side=tk.LEFT, padx=5, anchor='center')
 FIR_frame = ttk.Frame(notebook)
 notebook.add(FIR_frame, text='FIR')
 
-convlotion_button = tk.Button(FIR_frame, text="Filtering", command= FIR , padx=10, pady=5, width=15, height=2)
-convlotion_button.pack(side=tk.LEFT, padx=5, anchor='center')
+fir_button = tk.Button(FIR_frame, text="Filtering", command= FIR , padx=10, pady=5, width=15, height=2)
+fir_button.pack(side=tk.LEFT, padx=5, anchor='center')
 
-correlation_button = tk.Button(FIR_frame, text="Resampling", command=Resampling, padx=10, pady=5, width=15, height=2)
-correlation_button.pack(side=tk.LEFT, padx=5, anchor='center')
+confir_button = tk.Button(FIR_frame, text="Filtering", command= FIR , padx=10, pady=5, width=15, height=2)
+confir_button.pack(side=tk.LEFT, padx=5, anchor='center')
+
+
+# correlation_button = tk.Button(FIR_frame, text="Resampling", command=Resampling, padx=10, pady=5, width=15, height=2)
+# correlation_button.pack(side=tk.LEFT, padx=5, anchor='center')
 
 
 # Start the main event loop
